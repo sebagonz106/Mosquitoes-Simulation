@@ -1057,6 +1057,5 @@ except PrologBridgeError as e:
 
 ---
 
-**Última actualización:** Enero 2026  
 **Versión:** 1.0  
 **Estado:** Producción - Completamente funcional

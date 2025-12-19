@@ -82,6 +82,8 @@ class EnvironmentConfig:
     humidity: float
     carrying_capacity: int
     water_availability: float
+    temperature_variation: float = 3.0  # Seasonal temperature amplitude
+    humidity_variation: float = 10.0    # Humidity standard deviation
 
 
 class ConfigurationError(Exception):
@@ -277,11 +279,36 @@ class ConfigManager:
         """
         data = self._load_json_file(file_path)
         
+        # Extract temperature parameters
+        temp_data = data.get('temperature', {})
+        if isinstance(temp_data, dict):
+            temperature = temp_data.get('mean', 27.0)
+            temperature_variation = temp_data.get('std_dev', 3.0)
+        else:
+            temperature = temp_data
+            temperature_variation = 3.0
+        
+        # Extract humidity parameters
+        hum_data = data.get('humidity', {})
+        if isinstance(hum_data, dict):
+            humidity = hum_data.get('mean', 75.0)
+            humidity_variation = hum_data.get('std_dev', 10.0)
+        else:
+            humidity = hum_data
+            humidity_variation = 10.0
+        
+        # Extract habitat parameters
+        habitat_data = data.get('habitat', {})
+        carrying_capacity = habitat_data.get('carrying_capacity', data.get('carrying_capacity', 10000))
+        water_availability = habitat_data.get('quality', data.get('water_availability', 1.0))
+        
         self.environment_config = EnvironmentConfig(
-            temperature=data.get('temperature', 27.0),
-            humidity=data.get('humidity', 75.0),
-            carrying_capacity=data.get('carrying_capacity', 10000),
-            water_availability=data.get('water_availability', 1.0)
+            temperature=temperature,
+            humidity=humidity,
+            carrying_capacity=carrying_capacity,
+            water_availability=water_availability,
+            temperature_variation=temperature_variation,
+            humidity_variation=humidity_variation
         )
     
     # ========== PUBLIC GETTER METHODS ==========
