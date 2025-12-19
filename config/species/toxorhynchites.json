@@ -1,0 +1,50 @@
+{
+  "species_id": "toxorhynchites",
+  "display_name": "Toxorhynchites spp.",
+  "life_stages": {
+    "egg": {
+      "duration_days": {"min": 2, "max": 4},
+      "survival_to_next": 0.85
+    },
+    "larva_l1": {
+      "duration_days": {"min": 2, "max": 3},
+      "survival_to_next": 0.90
+    },
+    "larva_l2": {
+      "duration_days": {"min": 2, "max": 4},
+      "survival_to_next": 0.90
+    },
+    "larva_l3": {
+      "duration_days": {"min": 3, "max": 5},
+      "survival_to_next": 0.88,
+      "is_predatory": true,
+      "predation_rate": 15
+    },
+    "larva_l4": {
+      "duration_days": {"min": 4, "max": 8},
+      "survival_to_next": 0.85,
+      "is_predatory": true,
+      "predation_rate": 20
+    },
+    "pupa": {
+      "duration_days": {"min": 2, "max": 5},
+      "survival_to_next": 0.92
+    },
+    "adult": {
+      "duration_days": {"min": 30, "max": 60},
+      "survival_daily": 0.97
+    }
+  },
+  "reproduction": {
+    "eggs_per_batch": {"min": 40, "max": 80},
+    "oviposition_events": 2,
+    "min_age_reproduction_days": 5
+  },
+  "predation": {
+    "functional_response": {
+      "attack_rate": 0.5,
+      "handling_time": 0.1
+    },
+    "prey_stages": ["larva_l1", "larva_l2", "larva_l3", "larva_l4"]
+  }
+}

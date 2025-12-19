@@ -1,0 +1,44 @@
+{
+  "species_id": "aedes_aegypti",
+  "display_name": "Aedes aegypti",
+  "life_stages": {
+    "egg": {
+      "duration_days": {"min": 2, "max": 7},
+      "survival_to_next": 0.80
+    },
+    "larva_l1": {
+      "duration_days": {"min": 1, "max": 2},
+      "survival_to_next": 0.85
+    },
+    "larva_l2": {
+      "duration_days": {"min": 1, "max": 2},
+      "survival_to_next": 0.85
+    },
+    "larva_l3": {
+      "duration_days": {"min": 2, "max": 3},
+      "survival_to_next": 0.80
+    },
+    "larva_l4": {
+      "duration_days": {"min": 2, "max": 4},
+      "survival_to_next": 0.80
+    },
+    "pupa": {
+      "duration_days": {"min": 1, "max": 3},
+      "survival_to_next": 0.90
+    },
+    "adult": {
+      "duration_days": {"min": 14, "max": 30},
+      "survival_daily": 0.95
+    }
+  },
+  "reproduction": {
+    "eggs_per_batch": {"min": 80, "max": 150},
+    "oviposition_events": 3,
+    "min_age_reproduction_days": 3
+  },
+  "environmental_sensitivity": {
+    "optimal_temperature": {"min": 25, "max": 28},
+    "lethal_temperature": {"min": 10, "max": 40},
+    "optimal_humidity": 80
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "environment_id": "tropical_urban",
+  "display_name": "Ambiente Urbano Tropical",
+  "temperature": {
+    "mean": 27,
+    "std_dev": 3,
+    "seasonal_variation": true
+  },
+  "humidity": {
+    "mean": 75,
+    "std_dev": 10
+  },
+  "habitat": {
+    "carrying_capacity": 10000,
+    "breeding_sites": 50,
+    "quality": 0.8
+  },
+  "seasonality": {
+    "wet_season_months": [5, 6, 7, 8, 9, 10],
+    "dry_season_months": [11, 12, 1, 2, 3, 4],
+    "wet_season_multiplier": 1.3,
+    "dry_season_multiplier": 0.7
+  }
+}

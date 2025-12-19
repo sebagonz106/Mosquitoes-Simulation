@@ -1,0 +1,35 @@
+{
+  "simulation": {
+    "default_days": 365,
+    "time_step": 1,
+    "random_seed": null,
+    "stochastic_mode": true
+  },
+  "initial_populations": {
+    "aedes_aegypti": {
+      "egg": 200,
+      "larva_l1": 150,
+      "larva_l2": 120,
+      "larva_l3": 100,
+      "larva_l4": 80,
+      "pupa": 50,
+      "adult_female": 100,
+      "adult_male": 100
+    },
+    "toxorhynchites": {
+      "egg": 20,
+      "larva_l1": 15,
+      "larva_l2": 12,
+      "larva_l3": 10,
+      "larva_l4": 8,
+      "pupa": 5,
+      "adult_female": 10,
+      "adult_male": 10
+    }
+  },
+  "species_configs": [
+    "species/aedes_aegypti.json",
+    "species/toxorhynchites.json"
+  ],
+  "environment_config": "environment/default_environment.json"
+}
