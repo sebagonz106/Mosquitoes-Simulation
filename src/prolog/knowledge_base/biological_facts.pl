@@ -8,8 +8,6 @@
 %%
 %% Flujo: JSON → Python (ConfigManager) → PySwip → assertz() → Prolog
 %%
-%% Autor: Sistema de Simulación de Mosquitos
-%% Fecha: Enero 2026
 %% ══════════════════════════════════════════════════════════════════
 
 %% ══════════════════════════════════════════════════════════════════

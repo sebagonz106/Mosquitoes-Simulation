@@ -3,9 +3,6 @@ Application Layer - Visualization
 ==================================
 
 Plotting functions for simulation results.
-
-Author: Mosquito Simulation System
-Date: January 2026
 """
 
 from typing import Optional, List, Dict

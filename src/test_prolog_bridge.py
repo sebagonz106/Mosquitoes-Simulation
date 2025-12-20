@@ -29,28 +29,28 @@ def main():
         print("\n[1/8] Initializing PrologBridge...")
         config = load_default_config()
         bridge = PrologBridge(config)
-        print(f"✓ Bridge initialized: {bridge}")
+        print(f"[OK] Bridge initialized: {bridge}")
         print(f"  - Loaded files: {len(bridge.get_loaded_files_info())}")
         for file_path in bridge.get_loaded_files_info():
-            print(f"    • {Path(file_path).name}")
+            print(f"    * {Path(file_path).name}")
         
         # Test 2: Inject parameters
         print("\n[2/8] Injecting configuration parameters...")
         bridge.inject_parameters()
-        print("✓ Parameters injected")
+        print("[OK] Parameters injected")
         
         # Test 3: Verify parameters loaded
         print("\n[3/8] Verifying parameter injection...")
         verification = bridge.verify_parameters_loaded()
         for species_id, loaded in verification.items():
-            status = "✓" if loaded else "✗"
+            status = "[OK]" if loaded else "[X]"
             print(f"  {status} {species_id}: {loaded}")
         
         all_loaded = all(verification.values())
         if not all_loaded:
             print("⚠ Warning: Some parameters not loaded correctly")
         else:
-            print("✓ All parameters verified")
+            print("[OK] All parameters verified")
         
         # Test 4: Test ontology queries
         print("\n[4/8] Testing ontology queries...")
@@ -64,7 +64,7 @@ def main():
         species_results = bridge.query_all("species(S, G)")
         print(f"  - Species found: {len(species_results)}")
         for result in species_results:
-            print(f"    • {result['S']} (genus: {result['G']})")
+            print(f"    * {result['S']} (genus: {result['G']})")
         
         # Test genus_of predicate
         genus_result = bridge.query_once("genus_of(aedes_aegypti, G)")
@@ -77,7 +77,7 @@ def main():
         print(f"  - Toxorhynchites is predator: {is_predator}")
         print(f"  - Aedes is prey: {is_prey}")
         
-        print("✓ Ontology queries successful")
+        print("[OK] Ontology queries successful")
         
         # Test 5: Test parameter queries
         print("\n[5/8] Testing parameter queries...")
@@ -94,7 +94,7 @@ def main():
             "survival_rate(aedes_aegypti, egg, larva_l1, Rate)"
         )
         if survival_result:
-            print(f"  - Aedes egg→L1 survival: {survival_result['Rate'] * 100}%")
+            print(f"  - Aedes egg->L1 survival: {survival_result['Rate'] * 100}%")
         
         # Query fecundity
         fecundity_result = bridge.query_once(
@@ -117,7 +117,7 @@ def main():
         if func_resp_result:
             print(f"  - Functional response: a={func_resp_result['A']}, Th={func_resp_result['H']}")
         
-        print("✓ Parameter queries successful")
+        print("[OK] Parameter queries successful")
         
         # Test 6: Initialize populations
         print("\n[6/8] Initializing population states...")
@@ -135,7 +135,7 @@ def main():
         print(f"  - Toxorhynchites total: {toxo_total} individuals")
         print(f"    Stages: {len(toxo_pops)}")
         
-        print("✓ Populations initialized")
+        print("[OK] Populations initialized")
         
         # Test 7: Set environment state
         print("\n[7/8] Setting environmental conditions...")
@@ -147,7 +147,7 @@ def main():
         if env_result:
             print(f"  - Day 0: Temp={env_result['Temp']}°C, Humidity={env_result['Humidity']}%")
         
-        print("✓ Environment state set")
+        print("[OK] Environment state set")
         
         # Test 8: Test ecological inference
         print("\n[8/8] Testing ecological inference...")
@@ -177,11 +177,11 @@ def main():
         equilibrium = bridge.check_ecological_equilibrium(0)
         print(f"  - Ecological equilibrium: {equilibrium}")
         
-        print("✓ Ecological inference successful")
+        print("[OK] Ecological inference successful")
         
         # Summary
         print("\n" + "=" * 60)
-        print("✓✓✓ ALL TESTS PASSED ✓✓✓")
+        print("[OK][OK][OK] ALL TESTS PASSED [OK][OK][OK]")
         print("=" * 60)
         print("\nPrologBridge is fully operational!")
         print("Ready for simulation execution.")
@@ -189,7 +189,7 @@ def main():
         return 0
         
     except Exception as e:
-        print(f"\n✗ Test Failed: {e}")
+        print(f"\n[X] Test Failed: {e}")
         import traceback
         traceback.print_exc()
         return 1

@@ -3,9 +3,6 @@ Application Layer - DTOs (Data Transfer Objects)
 =================================================
 
 Data structures for transferring information between layers.
-
-Author: Mosquito Simulation System
-Date: January 2026
 """
 
 from dataclasses import dataclass, asdict
@@ -28,6 +25,9 @@ class SimulationConfig:
         initial_larvae: Initial larvae count (can be [L1,L2,L3,L4] array or total int)
         initial_pupae: Initial pupae count
         initial_adults: Initial adult count
+        temperature: Environmental temperature (°C) - default from config if None
+        humidity: Environmental humidity (0-100 scale, percentage) - default from config if None
+        water_availability: Water availability for oviposition (0-1 scale) - default 1.0
         random_seed: Random seed for reproducibility (optional)
     """
     
@@ -37,6 +37,9 @@ class SimulationConfig:
     initial_larvae: Union[List[int], int]
     initial_pupae: int
     initial_adults: int
+    temperature: Optional[float] = None  # Will use environment_config default if None
+    humidity: Optional[float] = None     # 0-100 scale (percentage)
+    water_availability: float = 1.0      # 1.0 = always available, 0.0 = never
     random_seed: Optional[int] = None
     
     def to_dict(self) -> Dict:
@@ -71,6 +74,20 @@ class SimulationConfig:
         
         if self.initial_adults < 0:
             errors.append("initial_adults cannot be negative")
+        
+        # Validate temperature if provided
+        if self.temperature is not None:
+            if self.temperature < -10 or self.temperature > 50:
+                errors.append("temperature must be between -10°C and 50°C")
+        
+        # Validate humidity if provided (0-100 scale)
+        if self.humidity is not None:
+            if self.humidity < 0 or self.humidity > 100:
+                errors.append("humidity must be between 0 and 100 (%)")
+        
+        # Validate water availability
+        if self.water_availability < 0 or self.water_availability > 1:
+            errors.append("water_availability must be between 0 and 1")
         
         # Validate larvae
         if isinstance(self.initial_larvae, list):

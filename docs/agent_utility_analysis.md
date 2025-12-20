@@ -1,9 +1,6 @@
 # Análisis Crítico: Sistema de Utilidad de Agentes
 
-**Fecha:** 9 de enero de 2026  
-**Componente:** `agent_decisions.pl` - Función de utilidad y beneficios  
-**Estado:** Requiere corrección urgente
-
+**Componente:** `agent_decisions.pl` - Función de utilidad y beneficios
 ---
 
 ## 🔴 Problema Actual

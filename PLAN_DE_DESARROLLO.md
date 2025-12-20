@@ -1172,8 +1172,8 @@ for result in prolog.query("survival_rate(aedes_aegypti, egg, larva_l1, Rate)"):
 
 ```json
 {
-  "simulation_id": "sim_20260109_001",
-  "created_at": "2026-01-09T10:30:00",
+  "simulation_id": "sim_20251219_001",
+  "created_at": "2025-12-19T10:30:00",
   "parameters": {
     "initial_aedes_population": 1000,
     "initial_toxo_population": 50,

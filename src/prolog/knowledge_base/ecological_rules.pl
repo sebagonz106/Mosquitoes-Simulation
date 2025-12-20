@@ -12,8 +12,6 @@
 %% - Capacidad de carga del hábitat
 %% - Evaluación de equilibrio poblacional
 %%
-%% Autor: Sistema de Simulación de Mosquitos
-%% Fecha: Enero 2026
 %% ══════════════════════════════════════════════════════════════════
 
 %% ══════════════════════════════════════════════════════════════════

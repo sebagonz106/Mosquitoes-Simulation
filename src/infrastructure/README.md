@@ -1,9 +1,7 @@
 # Infrastructure Layer - README
 
 **Directorio:** `src/infrastructure/`  
-**Propósito:** Capa de infraestructura que gestiona la comunicación con recursos externos (archivos JSON y motor Prolog)  
-**Fecha:** Enero 2026
-
+**Propósito:** Capa de infraestructura que gestiona la comunicación con recursos externos (archivos JSON y motor Prolog) 
 ---
 
 ## 📁 Estructura del Directorio

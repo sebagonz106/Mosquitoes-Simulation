@@ -15,8 +15,6 @@
 %% - Agentes de Aedes aegypti (hembras adultas con comportamiento reproductivo)
 %% - Agentes de Toxorhynchites (larvas depredadoras)
 %%
-%% Autor: Sistema de Simulación de Mosquitos
-%% Fecha: Enero 2026
 %% ══════════════════════════════════════════════════════════════════
 
 %% ══════════════════════════════════════════════════════════════════
@@ -102,10 +100,9 @@ decide_action(Agent, oviposit) :-
     agent_state(Agent, adult_female, Age, Energy, NotReproduced),
     Age > 3,
     Energy > 50,
+    NotReproduced = false,  % false = no ha reproducido aún
     perceive(Agent, humidity(H)), 
-    H > 70,
-    suitable_oviposition_site_available,
-    NotReproduced = false.
+    H > 0.6.  % Humedad > 60% (en escala 0-1)
 
 %% Decisión: Alimentarse
 %% Condiciones: energía baja, necesita recursos
@@ -124,7 +121,7 @@ decide_action(Agent, rest) :-
     Energy >= 40,
     % No cumple condiciones para ovipositar (ya reprodujo O no cumple otras condiciones)
     \+ (Stage = adult_female, Age > 3, Energy > 50, Reproduced = false, 
-        perceive(Agent, humidity(H)), H > 70, suitable_oviposition_site_available),
+        perceive(Agent, humidity(H)), H > 0.6),
     % No cumple condiciones para alimentarse
     \+ (Energy < 40).
 

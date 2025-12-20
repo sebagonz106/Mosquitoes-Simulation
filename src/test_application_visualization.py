@@ -3,9 +3,6 @@ Tests for Application Visualization
 ====================================
 
 Tests visualization functions (without displaying plots).
-
-Author: Mosquito Simulation System
-Date: January 2026
 """
 
 import sys
@@ -95,15 +92,15 @@ def test_population_evolution():
     fig = plot_population_evolution(result, show=False)
     assert fig is not None
     assert isinstance(fig, matplotlib.figure.Figure)
-    print("✓ Figure created successfully")
+    print("[OK] Figure created successfully")
     
     # Check subplots
     axes = fig.get_axes()
     assert len(axes) == 4  # 2x2 grid
-    print("✓ Contains 4 subplots (eggs, larvae, pupae, adults)")
+    print("[OK] Contains 4 subplots (eggs, larvae, pupae, adults)")
     
     plt.close(fig)
-    print("\n✅ Population evolution plot test passed")
+    print("\n[OK] Population evolution plot test passed")
     return True
 
 
@@ -119,12 +116,12 @@ def test_population_total():
     fig = plot_population_total(result, show=False)
     assert fig is not None
     assert isinstance(fig, matplotlib.figure.Figure)
-    print("✓ Figure created successfully")
+    print("[OK] Figure created successfully")
     
     # Check has single axis
     axes = fig.get_axes()
     assert len(axes) == 1
-    print("✓ Contains single axis")
+    print("[OK] Contains single axis")
     
     # Check peak marker exists
     ax = axes[0]
@@ -132,10 +129,10 @@ def test_population_total():
     has_scatter = any(isinstance(child, matplotlib.collections.PathCollection) 
                      for child in children)
     assert has_scatter
-    print("✓ Peak marker present")
+    print("[OK] Peak marker present")
     
     plt.close(fig)
-    print("\n✅ Total population plot test passed")
+    print("\n[OK] Total population plot test passed")
     return True
 
 
@@ -151,12 +148,12 @@ def test_population_stacked():
     fig = plot_population_stacked(result, show=False)
     assert fig is not None
     assert isinstance(fig, matplotlib.figure.Figure)
-    print("✓ Figure created successfully")
+    print("[OK] Figure created successfully")
     
     # Check has single axis
     axes = fig.get_axes()
     assert len(axes) == 1
-    print("✓ Contains single axis")
+    print("[OK] Contains single axis")
     
     # Check has filled areas (PolyCollection objects)
     ax = axes[0]
@@ -164,10 +161,10 @@ def test_population_stacked():
     poly_count = sum(1 for child in children 
                     if isinstance(child, matplotlib.collections.PolyCollection))
     assert poly_count >= 4  # At least 4 stacked areas
-    print(f"✓ Contains {poly_count} stacked areas")
+    print(f"[OK] Contains {poly_count} stacked areas")
     
     plt.close(fig)
-    print("\n✅ Stacked population plot test passed")
+    print("\n[OK] Stacked population plot test passed")
     return True
 
 
@@ -183,21 +180,21 @@ def test_agent_survival():
     fig = plot_agent_survival(result, show=False)
     assert fig is not None
     assert isinstance(fig, matplotlib.figure.Figure)
-    print("✓ Figure created successfully")
+    print("[OK] Figure created successfully")
     
     # Check has single axis
     axes = fig.get_axes()
     assert len(axes) == 1
-    print("✓ Contains single axis")
+    print("[OK] Contains single axis")
     
     # Check has two lines (vectors and predators)
     ax = axes[0]
     lines = ax.get_lines()
     assert len(lines) == 2
-    print("✓ Contains 2 lines (vectors, predators)")
+    print("[OK] Contains 2 lines (vectors, predators)")
     
     plt.close(fig)
-    print("\n✅ Agent survival plot test passed")
+    print("\n[OK] Agent survival plot test passed")
     return True
 
 
@@ -213,21 +210,21 @@ def test_agent_metrics():
     fig = plot_agent_metrics(result, show=False)
     assert fig is not None
     assert isinstance(fig, matplotlib.figure.Figure)
-    print("✓ Figure created successfully")
+    print("[OK] Figure created successfully")
     
     # Check has two subplots
     axes = fig.get_axes()
     assert len(axes) == 2
-    print("✓ Contains 2 subplots (eggs, prey)")
+    print("[OK] Contains 2 subplots (eggs, prey)")
     
     # Each should have a line
     for ax in axes:
         lines = ax.get_lines()
         assert len(lines) >= 1
-    print("✓ Each subplot has data lines")
+    print("[OK] Each subplot has data lines")
     
     plt.close(fig)
-    print("\n✅ Agent metrics plot test passed")
+    print("\n[OK] Agent metrics plot test passed")
     return True
 
 
@@ -287,21 +284,21 @@ def test_scenario_comparison():
     fig = plot_scenario_comparison(comparison, metric='total_population', show=False)
     assert fig is not None
     assert isinstance(fig, matplotlib.figure.Figure)
-    print("✓ Figure created successfully")
+    print("[OK] Figure created successfully")
     
     # Check has single axis
     axes = fig.get_axes()
     assert len(axes) == 1
-    print("✓ Contains single axis")
+    print("[OK] Contains single axis")
     
     # Check has two lines (two scenarios)
     ax = axes[0]
     lines = ax.get_lines()
     assert len(lines) == 2
-    print("✓ Contains 2 lines (two scenarios)")
+    print("[OK] Contains 2 lines (two scenarios)")
     
     plt.close(fig)
-    print("\n✅ Scenario comparison plot test passed")
+    print("\n[OK] Scenario comparison plot test passed")
     return True
 
 
@@ -345,15 +342,15 @@ def test_comparison_bar():
     fig = plot_comparison_bar(comparison, show=False)
     assert fig is not None
     assert isinstance(fig, matplotlib.figure.Figure)
-    print("✓ Figure created successfully")
+    print("[OK] Figure created successfully")
     
     # Check has 3 subplots (default metrics)
     axes = fig.get_axes()
     assert len(axes) == 3
-    print("✓ Contains 3 subplots (default metrics)")
+    print("[OK] Contains 3 subplots (default metrics)")
     
     plt.close(fig)
-    print("\n✅ Comparison bar chart test passed")
+    print("\n[OK] Comparison bar chart test passed")
     return True
 
 
@@ -372,14 +369,14 @@ def test_save_all_plots():
         saved_files = save_all_plots(result, tmpdir, prefix="test_")
         
         assert len(saved_files) == 3
-        print(f"✓ Saved {len(saved_files)} plots")
+        print(f"[OK] Saved {len(saved_files)} plots")
         
         # Check files exist
         for filepath in saved_files:
             assert os.path.exists(filepath)
-            print(f"  ✓ {os.path.basename(filepath)}")
+            print(f"  [OK] {os.path.basename(filepath)}")
     
-    print("\n✅ Save all plots test passed")
+    print("\n[OK] Save all plots test passed")
     return True
 
 
@@ -395,15 +392,15 @@ def test_create_report_figure():
     fig = create_report_figure(result, show=False)
     assert fig is not None
     assert isinstance(fig, matplotlib.figure.Figure)
-    print("✓ Figure created successfully")
+    print("[OK] Figure created successfully")
     
     # Check has multiple subplots
     axes = fig.get_axes()
     assert len(axes) >= 4  # At least 4 subplots
-    print(f"✓ Contains {len(axes)} subplots")
+    print(f"[OK] Contains {len(axes)} subplots")
     
     plt.close(fig)
-    print("\n✅ Report figure test passed")
+    print("\n[OK] Report figure test passed")
     return True
 
 
@@ -424,16 +421,16 @@ def test_plot_with_save():
         
         # Check file was created
         assert os.path.exists(filepath)
-        print(f"✓ Plot saved to {filepath}")
+        print(f"[OK] Plot saved to {filepath}")
         
         # Check file size > 0
         file_size = os.path.getsize(filepath)
         assert file_size > 0
-        print(f"✓ File size: {file_size} bytes")
+        print(f"[OK] File size: {file_size} bytes")
         
         plt.close(fig)
     
-    print("\n✅ Plot saving test passed")
+    print("\n[OK] Plot saving test passed")
     return True
 
 
@@ -455,17 +452,17 @@ if __name__ == '__main__':
         test_plot_with_save()
         
         print("\n" + "="*60)
-        print("✅ ALL VISUALIZATION TESTS PASSED")
+        print("[OK] ALL VISUALIZATION TESTS PASSED")
         print("="*60)
         print("\nNote: Plots were generated but not displayed (test mode)")
         
     except AssertionError as e:
-        print(f"\n❌ Test failed: {e}")
+        print(f"\n[X] Test failed: {e}")
         import traceback
         traceback.print_exc()
         exit(1)
     except Exception as e:
-        print(f"\n❌ Unexpected error: {e}")
+        print(f"\n[X] Unexpected error: {e}")
         import traceback
         traceback.print_exc()
         exit(1)

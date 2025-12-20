@@ -16,8 +16,6 @@
 %% - Respuesta funcional tipo II (Holling) para depredación
 %% - Agentes racionales (AIMA Cap. 1)
 %%
-%% Autor: Sistema de Simulación de Mosquitos
-%% Fecha: Enero 2026
 %% ══════════════════════════════════════════════════════════════════
 
 %% ============== REPRESENTACIÓN DEL ESTADO POBLACIONAL ==============

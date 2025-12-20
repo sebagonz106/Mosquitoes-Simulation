@@ -27,7 +27,7 @@ def main():
         # Load configuration
         print("\n[1/5] Loading configuration files...")
         config = load_default_config()
-        print("✓ Configuration loaded successfully")
+        print("[OK] Configuration loaded successfully")
         
         # Test simulation config
         print("\n[2/5] Testing simulation configuration...")
@@ -36,7 +36,7 @@ def main():
         print(f"  - Time step: {sim_config.time_step}")
         print(f"  - Stochastic mode: {sim_config.stochastic_mode}")
         print(f"  - Random seed: {sim_config.random_seed}")
-        print("✓ Simulation config OK")
+        print("[OK] Simulation config OK")
         
         # Test species configs
         print("\n[3/5] Testing species configurations...")
@@ -46,8 +46,8 @@ def main():
         for species_id in species_ids:
             species = config.get_species_config(species_id)
             print(f"\n  [{species.display_name}]")
-            print(f"    • Life stages: {len(species.life_stages)}")
-            print(f"    • Eggs per batch: {species.reproduction.eggs_per_batch_min}-{species.reproduction.eggs_per_batch_max}")
+            print(f"    * Life stages: {len(species.life_stages)}")
+            print(f"    * Eggs per batch: {species.reproduction.eggs_per_batch_min}-{species.reproduction.eggs_per_batch_max}")
             
             # Check for predatory stages
             predatory_stages = [
@@ -55,14 +55,14 @@ def main():
                 if cfg.is_predatory
             ]
             if predatory_stages:
-                print(f"    • Predatory stages: {', '.join(predatory_stages)}")
+                print(f"    * Predatory stages: {', '.join(predatory_stages)}")
             
             # Check predation config
             if species.predation:
-                print(f"    • Attack rate: {species.predation.attack_rate}")
-                print(f"    • Handling time: {species.predation.handling_time}")
+                print(f"    * Attack rate: {species.predation.attack_rate}")
+                print(f"    * Handling time: {species.predation.handling_time}")
         
-        print("\n✓ Species configs OK")
+        print("\n[OK] Species configs OK")
         
         # Test initial populations
         print("\n[4/5] Testing initial populations...")
@@ -72,9 +72,9 @@ def main():
             total = sum(stages.values())
             print(f"  - {species_id}: {total} individuals")
             for stage, count in stages.items():
-                print(f"      • {stage}: {count}")
+                print(f"      * {stage}: {count}")
         
-        print("✓ Initial populations OK")
+        print("[OK] Initial populations OK")
         
         # Test environment config
         print("\n[5/5] Testing environment configuration...")
@@ -83,7 +83,7 @@ def main():
         print(f"  - Humidity: {env_config.humidity}%")
         print(f"  - Carrying capacity: {env_config.carrying_capacity}")
         print(f"  - Water availability: {env_config.water_availability}")
-        print("✓ Environment config OK")
+        print("[OK] Environment config OK")
         
         # Validate all
         print("\n[VALIDATION] Running full validation...")
@@ -94,7 +94,7 @@ def main():
             for warning in warnings:
                 print(f"  - {warning}")
         else:
-            print("✓ All validations passed")
+            print("[OK] All validations passed")
         
         # Test specific getters
         print("\n[ADDITIONAL TESTS] Testing specific getters...")
@@ -115,19 +115,19 @@ def main():
         pred_rate = config.get_predation_rate('toxorhynchites', 'larva_l4')
         print(f"  - Toxo L4 predation rate: {pred_rate} prey/day")
         
-        print("\n✓ All getter tests passed")
+        print("\n[OK] All getter tests passed")
         
         print("\n" + "=" * 60)
-        print("✓✓✓ ALL TESTS PASSED ✓✓✓")
+        print("[OK][OK][OK] ALL TESTS PASSED [OK][OK][OK]")
         print("=" * 60)
         
         return 0
         
     except ConfigurationError as e:
-        print(f"\n✗ Configuration Error: {e}")
+        print(f"\n[X] Configuration Error: {e}")
         return 1
     except Exception as e:
-        print(f"\n✗ Unexpected Error: {e}")
+        print(f"\n[X] Unexpected Error: {e}")
         import traceback
         traceback.print_exc()
         return 1

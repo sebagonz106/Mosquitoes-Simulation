@@ -3,9 +3,6 @@ Tests for Application Layer DTOs
 =================================
 
 Tests Data Transfer Objects for the application layer.
-
-Author: Mosquito Simulation System
-Date: January 2026
 """
 
 import sys
@@ -312,8 +309,8 @@ def test_comparison_result():
         results={'baseline': result1, 'with_control': result2},
         comparison=comparison,
         checkpoint_paths={
-            'baseline': 'checkpoint_baseline_5days_20260109.json',
-            'with_control': 'checkpoint_with_control_5days_20260109.json'
+            'baseline': 'checkpoint_baseline_5days_20251219.json',
+            'with_control': 'checkpoint_with_control_5days_20251219.json'
         }
     )
     

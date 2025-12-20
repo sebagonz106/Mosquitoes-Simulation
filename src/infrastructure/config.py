@@ -5,9 +5,6 @@ Configuration Management Module
 Manages loading and validation of JSON configuration files for the mosquito
 population simulator. Provides typed access to simulation parameters, species
 biology, and environmental conditions.
-
-Author: Mosquito Simulation System
-Date: January 2026
 """
 
 import json

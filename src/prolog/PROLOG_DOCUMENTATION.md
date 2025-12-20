@@ -1,10 +1,7 @@
 # Documentación del Sistema Prolog
 ## Simulador de Dinámica Poblacional: Mosquitos
 
-**Directorio:** `src/prolog/`  
-**Fecha de creación:** Enero 2026  
-**Versión:** 1.0
-
+**Directorio:** `src/prolog/`
 ---
 
 ## Estructura del Directorio

@@ -5,9 +5,6 @@ Prolog Bridge Module
 Python-Prolog interface using PySwip. Manages SWI-Prolog engine initialization,
 loads knowledge base files, injects configuration parameters as dynamic facts,
 and provides query execution methods.
-
-Author: Mosquito Simulation System
-Date: January 2026
 """
 
 import logging

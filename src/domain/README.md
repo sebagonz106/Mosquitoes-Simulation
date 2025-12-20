@@ -1,9 +1,5 @@
 # Domain Layer - Mosquito Simulation System
 
-**Autor:** Sistema de Simulación de Mosquitos  
-**Fecha:** Enero 2026  
-**Estado:** Completado y Validado
-
 ---
 
 ## 📋 Índice

@@ -97,7 +97,7 @@ def test_stochastic_processes():
     print(f"    Std: {np.std(hum_series):.2f}%")
     print(f"    Range: [{np.min(hum_series):.2f}, {np.max(hum_series):.2f}]%")
     
-    print("\n✓ Stochastic processes test PASSED\n")
+    print("\n[OK] Stochastic processes test PASSED\n")
 
 
 def test_leslie_matrix():
@@ -150,7 +150,7 @@ def test_leslie_matrix():
     print(f"  - λ₁: {L_aegypti.eigenanalysis().lambda_1:.4f}")
     print(f"  - Viable: {L_aegypti.is_viable()}")
     
-    print("\n✓ Leslie matrix test PASSED\n")
+    print("\n[OK] Leslie matrix test PASSED\n")
 
 
 def test_environment_model():
@@ -198,7 +198,7 @@ def test_environment_model():
     favorable_days = env.count_favorable_days(temp_range=(20, 32), hum_threshold=60)
     print(f"  - Favorable days: {favorable_days}/{env.days} ({favorable_days/env.days*100:.1f}%)")
     
-    print("\n✓ Environment model test PASSED\n")
+    print("\n[OK] Environment model test PASSED\n")
 
 
 def test_population_model():
@@ -268,7 +268,7 @@ def test_population_model():
     print(f"  - Pupae: {day_50.pupae}")
     print(f"  - Adults: {day_50.adults}")
     
-    print("\n✓ Population model test PASSED\n")
+    print("\n[OK] Population model test PASSED\n")
 
 
 def test_integration_with_prolog():
@@ -308,7 +308,7 @@ def test_integration_with_prolog():
         print(f"  - Day 25: {trajectory.states[25].total}")
         print(f"  - Final: {trajectory.states[-1].total}")
         
-        print("\n✓ Prolog integration test PASSED\n")
+        print("\n[OK] Prolog integration test PASSED\n")
         
     except Exception as e:
         print(f"\n⚠ Prolog integration test SKIPPED: {e}")
@@ -333,7 +333,7 @@ def main():
         print("=" * 70 + "\n")
         
     except Exception as e:
-        print(f"\n❌ TEST FAILED: {e}")
+        print(f"\n[X] TEST FAILED: {e}")
         import traceback
         traceback.print_exc()
         return 1

@@ -5,8 +5,6 @@
 %% Este archivo define la estructura taxonómica y características
 %% fundamentales de las especies modeladas en el simulador.
 %%
-%% Autor: Sistema de Simulación de Mosquitos
-%% Fecha: Enero 2026
 %% ══════════════════════════════════════════════════════════════════
 
 %% ══════════════════════════════════════════════════════════════════
