@@ -230,6 +230,73 @@ class AgentResult:
         if self.num_predators_initial == 0:
             return 0.0
         return self.total_prey_consumed / self.num_predators_initial
+    
+    def get_statistics(self) -> Dict:
+        """
+        Get standardized statistics comparable with PopulationResult.
+        
+        Returns dictionary with metrics that match PopulationResult structure:
+        - peak_population: Maximum number of vectors during simulation
+        - peak_day: Day when peak occurred
+        - final_population: Final number of vectors
+        - mean_population: Average number of vectors across all days
+        - extinction_day: Day when population reached zero (if applicable)
+        
+        For predators:
+        - peak_predators: Maximum number of predators
+        - final_predators: Final number of predators
+        - mean_predators: Average number of predators
+        
+        Additional agent-specific metrics:
+        - total_eggs: Total eggs laid
+        - avg_eggs_per_vector: Average eggs per vector
+        - vector_survival_rate: Fraction of vectors surviving
+        - predator_survival_rate: Fraction of predators surviving
+        """
+        if not self.daily_stats:
+            return {}
+        
+        # Extract vector population trajectory
+        vector_counts = [stat['num_vectors_alive'] for stat in self.daily_stats]
+        predator_counts = [stat['num_predators_alive'] for stat in self.daily_stats]
+        
+        # Calculate vector statistics
+        peak_population = max(vector_counts)
+        peak_day = vector_counts.index(peak_population)
+        mean_population = sum(vector_counts) / len(vector_counts)
+        
+        # Check for extinction
+        extinction_day = None
+        for day, count in enumerate(vector_counts):
+            if count == 0 and day > 0:
+                extinction_day = day
+                break
+        
+        # Calculate predator statistics
+        peak_predators = max(predator_counts) if predator_counts else 0
+        mean_predators = sum(predator_counts) / len(predator_counts) if predator_counts else 0.0
+        
+        return {
+            # Vector population metrics (comparable with PopulationResult)
+            'peak_population': peak_population,
+            'peak_day': peak_day,
+            'final_population': self.num_vectors_final,
+            'mean_population': mean_population,
+            'extinction_day': extinction_day,
+            
+            # Predator metrics
+            'peak_predators': peak_predators,
+            'final_predators': self.num_predators_final,
+            'mean_predators': mean_predators,
+            
+            # Agent-specific metrics
+            'total_eggs': self.total_eggs_laid,
+            'avg_eggs_per_vector': self.get_average_eggs_per_vector(),
+            'vector_survival_rate': self.get_survival_rate_vectors(),
+            'predator_survival_rate': self.get_survival_rate_predators(),
+            'total_prey_consumed': self.total_prey_consumed,
+            'avg_prey_per_predator': self.get_average_prey_per_predator()
+        }
 
 
 @dataclass
