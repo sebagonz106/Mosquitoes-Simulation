@@ -105,7 +105,7 @@ decide_action(Agent, oviposit) :-
     perceive(Agent, humidity(H)), 
     H > 70,
     suitable_oviposition_site_available,
-    NotReproduced = true.
+    NotReproduced = false.
 
 %% Decisión: Alimentarse
 %% Condiciones: energía baja, necesita recursos
@@ -122,8 +122,9 @@ decide_action(Agent, rest) :-
     genus_of(Species, aedes),
     agent_state(Agent, Stage, Age, Energy, Reproduced),
     Energy >= 40,
-    % No cumple condiciones para ovipositar
-    \+ (Stage = adult_female, Age > 3, Energy > 50, Reproduced = true, suitable_oviposition_site_available),
+    % No cumple condiciones para ovipositar (ya reprodujo O no cumple otras condiciones)
+    \+ (Stage = adult_female, Age > 3, Energy > 50, Reproduced = false, 
+        perceive(Agent, humidity(H)), H > 70, suitable_oviposition_site_available),
     % No cumple condiciones para alimentarse
     \+ (Energy < 40).
 
@@ -206,9 +207,10 @@ action_benefit(_, _, 0). % Beneficio por defecto
 %% @param AgentID: Identificador del agente
 %% @param MejorAccion: Acción con utilidad maxima
 %% Implementa el principio de racionalidad: maximización de utilidad esperada.
+%% Solo considera acciones que cumplan precondiciones (decide_action)
 best_action(Agent, BestAction) :-
     findall(U-A, 
-            (possible_action(Agent, A), utility(Agent, A, U)), 
+            (decide_action(Agent, A), utility(Agent, A, U)), 
             Actions),
     (Actions \= [] ->
         sort(Actions, Sorted),

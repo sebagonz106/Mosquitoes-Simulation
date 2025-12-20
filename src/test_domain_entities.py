@@ -157,7 +157,7 @@ def test_population_entity():
     # Get initial snapshot
     initial_snapshot = population.get_current_snapshot()
     print(f"\nInitial state: {initial_snapshot}")
-    print(f"Stage proportions: {initial_snapshot.stage_proportions()}")
+    print(f"Stage proportions: {initial_snapshot.stage_proportions() if initial_snapshot is not None else -1}")
     
     # Run simulation
     print("\nRunning 30-day simulation...")
@@ -299,14 +299,14 @@ def test_entity_integration():
     )
     
     initial = population.get_current_snapshot()
-    print(f"  Initial population: {initial.total}")
+    print(f"  Initial population: {initial.total if initial is not None else -1}")
     
     # Run simulation
     print(f"\nRunning 50-day simulation...")
     trajectory = population.simulate(days=50)
     
     final = population.get_current_snapshot()
-    print(f"  Final population: {final.total}")
+    print(f"  Final population: {final.total if final is not None else -1}")
     
     # Get habitat conditions at peak population day
     peak_day, peak_size = population.get_peak_population()
