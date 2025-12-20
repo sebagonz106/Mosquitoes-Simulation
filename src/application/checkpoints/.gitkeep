@@ -1,0 +1,9 @@
+# Checkpoint Directory
+
+This directory stores simulation checkpoints in JSON format.
+
+Checkpoints are automatically generated after each simulation with descriptive names:
+- `checkpoint_{species}_{days}days_{timestamp}.json`
+- `checkpoint_{scenario}_{days}days_{timestamp}.json`
+
+Users can load these checkpoints to review previous simulation results.
