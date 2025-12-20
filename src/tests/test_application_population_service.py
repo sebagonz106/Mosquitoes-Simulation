@@ -10,8 +10,9 @@ import numpy as np
 from pathlib import Path
 import sys
 
-# Add src to path
-sys.path.insert(0, str(Path(__file__).parent))
+# Add src to path for imports
+project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(project_root))
 
 from application.services import PopulationService
 from application.dtos import SimulationConfig, PopulationResult

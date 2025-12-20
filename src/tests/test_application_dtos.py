@@ -7,7 +7,11 @@ Tests Data Transfer Objects for the application layer.
 
 import sys
 import os
-sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+from pathlib import Path
+
+# Add src to path for imports
+project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(project_root))
 
 import numpy as np
 from application.dtos import (

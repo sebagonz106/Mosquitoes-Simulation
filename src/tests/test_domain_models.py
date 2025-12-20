@@ -12,9 +12,11 @@ Tests the mathematical models in the domain layer:
 import sys
 import os
 import numpy as np
+from pathlib import Path
 
-# Add src to path
-sys.path.append(os.path.dirname(__file__))
+# Add src to path for imports
+project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(project_root))
 
 from infrastructure.config import load_default_config
 from infrastructure.prolog_bridge import create_prolog_bridge
