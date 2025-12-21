@@ -15,7 +15,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 from presentation.styles.theme import Colors, Fonts, Spacing, configure_styles
 from presentation.components import Sidebar, LogPanel
-from presentation.views import HomeView, SimulationView, ResultsView
+from presentation.views import HomeView, SimulationView, ResultsView, CompareView, CheckpointsView, SpeciesView
 from presentation.controllers import SimulationController
 
 
@@ -47,6 +47,7 @@ class Application(tk.Tk):
         # Current view tracking
         self.current_view_name = 'home'
         self.current_view_widget = None
+        self.current_config = None  # Store current simulation config
         
         # Initialize controller
         self.simulation_controller = SimulationController()
@@ -158,24 +159,26 @@ class Application(tk.Tk):
             )
             
         elif view_name == 'compare':
-            # Placeholder for compare view
-            self.current_view_widget = self._create_placeholder_view(
-                "Comparar Escenarios",
-                "Vista de comparación de múltiples simulaciones.\n\n(En desarrollo)"
+            # Compare scenarios view
+            self.current_view_widget = CompareView(
+                self.content_frame,
+                on_log=self._on_log_message
             )
             
         elif view_name == 'checkpoints':
-            # Placeholder for checkpoints view
-            self.current_view_widget = self._create_placeholder_view(
-                "Checkpoints",
-                "Vista de gestión de puntos de guardado.\n\n(En desarrollo)"
+            # Checkpoints management view
+            self.current_view_widget = CheckpointsView(
+                self.content_frame,
+                controller=self.simulation_controller,
+                on_log=self._on_log_message,
+                on_load_checkpoint=self._on_load_checkpoint
             )
             
         elif view_name == 'species':
-            # Placeholder for species view
-            self.current_view_widget = self._create_placeholder_view(
-                "Información de Especies",
-                "Vista de parámetros y características de especies.\n\n(En desarrollo)"
+            # Species information view
+            self.current_view_widget = SpeciesView(
+                self.content_frame,
+                on_log=self._on_log_message
             )
             
         elif view_name == 'export':
@@ -263,20 +266,29 @@ class Application(tk.Tk):
         
         return frame
     
-    def _on_simulation_results(self, result):
+    def _on_simulation_results(self, result, config=None):
         """
         Handle simulation results.
         
         Args:
             result: Simulation result (PopulationResult, AgentResult, or HybridResult)
+            config: SimulationConfig used for the simulation
         """
+        # Store config for checkpoint saving
+        self.current_config = config
+        
         # Remove current view
         if self.current_view_widget:
             self.current_view_widget.destroy()
             self.current_view_widget = None
         
-        # Create results view
-        self.current_view_widget = ResultsView(self.content_frame, result)
+        # Create results view with controller and config
+        self.current_view_widget = ResultsView(
+            self.content_frame,
+            result,
+            controller=self.simulation_controller,
+            config=config
+        )
         self.current_view_widget.pack(fill=tk.BOTH, expand=True)
         
         # Reset scroll
@@ -301,6 +313,27 @@ class Application(tk.Tk):
             self.log_panel.log_error(message)
         elif level == 'warning':
             self.log_panel.log_warning(message)
+    
+    def _on_load_checkpoint(self, checkpoint_path: str):
+        """
+        Handle checkpoint loading.
+        
+        Args:
+            checkpoint_path: Path to checkpoint file
+        """
+        try:
+            # Load checkpoint
+            config, result, sim_type = self.simulation_controller.service.load_checkpoint(checkpoint_path)
+            
+            # Show results
+            self._on_simulation_results(result, config)
+            
+            self.log_panel.log_success(f"Checkpoint cargado correctamente")
+            
+        except Exception as e:
+            from tkinter import messagebox
+            messagebox.showerror("Error", f"Error cargando checkpoint:\n{str(e)}")
+            self.log_panel.log_error(f"Error cargando checkpoint: {str(e)}")
     
     def _on_frame_configure(self, event=None):
         """Reset scroll region when frame size changes."""

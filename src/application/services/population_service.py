@@ -67,6 +67,12 @@ class PopulationService:
         
         # Create environment model (need +1 for inclusive range [0, duration_days])
         env_config = config_manager.get_environment_config()
+        
+        # OVERRIDE environmental values with user input from SimulationConfig
+        env_config.temperature = config.temperature
+        env_config.humidity = config.humidity
+        env_config.water_availability = config.water_availability
+        
         environment_model = EnvironmentModel(
             config=env_config,
             days=config.duration_days + 1

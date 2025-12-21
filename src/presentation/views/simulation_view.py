@@ -390,7 +390,7 @@ class SimulationView(ttk.Frame):
             
             # Callback with results
             if self.on_results:
-                self.on_results(result)
+                self.on_results(result, config)
                 
         except ValueError as e:
             messagebox.showerror("Error de Validación", str(e))

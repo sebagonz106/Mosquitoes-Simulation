@@ -38,17 +38,27 @@ class ResultsView(ttk.Frame):
     - Export options
     """
     
-    def __init__(self, parent, result: Union[PopulationResult, AgentResult, HybridResult]):
+    def __init__(
+        self,
+        parent,
+        result: Union[PopulationResult, AgentResult, HybridResult],
+        controller=None,
+        config=None
+    ):
         """
         Initialize results view.
         
         Args:
             parent: Parent widget
             result: Simulation result to display
+            controller: SimulationController for saving checkpoints
+            config: SimulationConfig used for the simulation
         """
         super().__init__(parent, style='TFrame')
         
         self.result = result
+        self.controller = controller
+        self.config = config
         self._setup_ui()
         
     def _setup_ui(self):
@@ -414,6 +424,13 @@ class ResultsView(ttk.Frame):
         """Save result as checkpoint."""
         from tkinter import simpledialog, messagebox
         
+        if not self.controller or not self.config:
+            messagebox.showwarning(
+                "No Disponible",
+                "No se puede guardar checkpoint: información de configuración no disponible."
+            )
+            return
+        
         # Get species ID safely
         species_id = "result"
         if isinstance(self.result, PopulationResult):
@@ -429,7 +446,32 @@ class ResultsView(ttk.Frame):
         
         if name:
             try:
-                # TODO: Implement checkpoint saving via controller
-                messagebox.showinfo("Éxito", f"Checkpoint '{name}' guardado correctamente")
+                # Determine simulation type
+                if isinstance(self.result, PopulationResult):
+                    sim_type = 'population'
+                elif isinstance(self.result, AgentResult):
+                    sim_type = 'agent'
+                else:
+                    sim_type = 'hybrid'
+                
+                # Ensure name has .json extension
+                if not name.endswith('.json'):
+                    checkpoint_filename = f"{name}.json"
+                else:
+                    checkpoint_filename = name
+                
+                # Save checkpoint directly via service with the result we have
+                checkpoint_path = self.controller.service.save_checkpoint(
+                    result=self.result,  # Use the result we already have
+                    config=self.config,
+                    simulation_type=sim_type,
+                    checkpoint_name=checkpoint_filename
+                )
+                
+                messagebox.showinfo(
+                    "Éxito",
+                    f"Checkpoint guardado correctamente:\n{checkpoint_path.name}"
+                )
+                
             except Exception as e:
                 messagebox.showerror("Error", f"Error guardando checkpoint:\n{str(e)}")
