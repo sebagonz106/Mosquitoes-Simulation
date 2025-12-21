@@ -6,7 +6,7 @@ Data structures for transferring information between layers.
 """
 
 from dataclasses import dataclass, asdict
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union, Any
 import numpy as np
 
 
@@ -403,3 +403,78 @@ class ComparisonResult:
         ranking.sort(key=lambda x: x[1])
         
         return ranking
+
+
+@dataclass
+class HybridResult:
+    """
+    Result of a hybrid simulation (population + agent-based).
+    
+    Combines results from both population and agent simulations
+    along with comparison data between the two approaches.
+    
+    Attributes:
+        population_result: Result from population-based simulation
+        agent_result: Result from agent-based simulation
+        comparison_data: Comparative metrics between both approaches
+    """
+    
+    population_result: PopulationResult
+    agent_result: AgentResult
+    comparison_data: Dict[str, Any]
+    
+    def __post_init__(self):
+        """Validate that results are not None."""
+        if self.population_result is None:
+            raise ValueError("population_result cannot be None")
+        if self.agent_result is None:
+            raise ValueError("agent_result cannot be None")
+        if self.comparison_data is None:
+            self.comparison_data = {}
+    
+    def to_dict(self) -> Dict:
+        """Convert to dictionary for serialization."""
+        return {
+            'population_result': self.population_result.to_dict(),
+            'agent_result': self.agent_result.to_dict(),
+            'comparison_data': self.comparison_data
+        }
+    
+    @classmethod
+    def from_dict(cls, data: Dict) -> 'HybridResult':
+        """Create from dictionary."""
+        return cls(
+            population_result=PopulationResult.from_dict(data['population_result']),
+            agent_result=AgentResult.from_dict(data['agent_result']),
+            comparison_data=data.get('comparison_data', {})
+        )
+    
+    def get_comparison_summary(self) -> Dict:
+        """
+        Get summary of comparison between population and agent approaches.
+        
+        Returns:
+            Dictionary with comparative metrics
+        """
+        pop_stats = self.population_result.statistics
+        agent_stats = self.agent_result.get_statistics()
+        
+        summary = {
+            'population_peak': pop_stats.get('peak_population', 0),
+            'agent_peak': agent_stats.get('peak_population', 0),
+            'population_final': pop_stats.get('final_population', 0),
+            'agent_final': agent_stats.get('final_population', 0),
+            'difference_peak': abs(
+                pop_stats.get('peak_population', 0) - 
+                agent_stats.get('peak_population', 0)
+            ),
+            'difference_final': abs(
+                pop_stats.get('final_population', 0) - 
+                agent_stats.get('final_population', 0)
+            )
+        }
+        
+        # Add custom comparison data if available
+        summary.update(self.comparison_data)
+        
+        return summary

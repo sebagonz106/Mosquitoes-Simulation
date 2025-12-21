@@ -20,6 +20,7 @@ from application.dtos import (
     SimulationConfig,
     PopulationResult,
     AgentResult,
+    HybridResult,
     ComparisonResult
 )
 from application.services.population_service import PopulationService
@@ -111,7 +112,7 @@ class SimulationService:
         config: SimulationConfig,
         num_predators: int = 0,
         predator_species: str = 'toxorhynchites'
-    ) -> Tuple[PopulationResult, AgentResult, Dict]:
+    ) -> HybridResult:
         """
         Run both population and agent simulations in parallel for comparison.
         
@@ -124,8 +125,7 @@ class SimulationService:
             predator_species: Predator species identifier
             
         Returns:
-            Tuple of (PopulationResult, AgentResult, comparison_dict)
-            where comparison_dict contains comparative metrics
+            HybridResult containing both simulation results and comparison data
             
         Raises:
             ValueError: If configuration is invalid
@@ -177,7 +177,11 @@ class SimulationService:
             }
         }
         
-        return pop_result, agent_result, comparison
+        return HybridResult(
+            population_result=pop_result,
+            agent_result=agent_result,
+            comparison_data=comparison
+        )
     
     @staticmethod
     def compare_scenarios(
@@ -243,7 +247,7 @@ class SimulationService:
     
     def save_checkpoint(
         self,
-        result: Union[PopulationResult, AgentResult],
+        result: Union[PopulationResult, AgentResult, HybridResult],
         config: SimulationConfig,
         simulation_type: str,
         checkpoint_name: Optional[str] = None
@@ -252,9 +256,9 @@ class SimulationService:
         Save simulation state to checkpoint file.
         
         Args:
-            result: Simulation result to save
+            result: Simulation result to save (PopulationResult, AgentResult, or HybridResult)
             config: Configuration used
-            simulation_type: 'population' or 'agent'
+            simulation_type: 'population', 'agent', or 'hybrid'
             checkpoint_name: Custom name (default: auto-generated)
             
         Returns:
@@ -294,7 +298,7 @@ class SimulationService:
         
         return checkpoint_path
     
-    def load_checkpoint(self, checkpoint_path: Union[str, Path]) -> Tuple[SimulationConfig, Union[PopulationResult, AgentResult], str]:
+    def load_checkpoint(self, checkpoint_path: Union[str, Path]) -> Tuple[SimulationConfig, Union[PopulationResult, AgentResult, HybridResult], str]:
         """
         Load simulation state from checkpoint file.
         
@@ -302,7 +306,8 @@ class SimulationService:
             checkpoint_path: Path to checkpoint file
             
         Returns:
-            Tuple of (config, result, simulation_type)
+            Tuple of (config, result, simulation_type) where result can be
+            PopulationResult, AgentResult, or HybridResult
             
         Raises:
             FileNotFoundError: If checkpoint doesn't exist
@@ -330,6 +335,8 @@ class SimulationService:
             result = PopulationResult.from_dict(checkpoint_data['result'])
         elif simulation_type == 'agent':
             result = AgentResult.from_dict(checkpoint_data['result'])
+        elif simulation_type == 'hybrid':
+            result = HybridResult.from_dict(checkpoint_data['result'])
         else:
             raise ValueError(f"Unknown simulation type: {simulation_type}")
         

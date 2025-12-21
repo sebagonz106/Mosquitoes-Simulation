@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from typing import Optional, Dict
 
 from application.use_cases.base import UseCase, BaseResponse, ValidationError
-from application.dtos import SimulationConfig, PopulationResult, AgentResult
+from application.dtos import SimulationConfig, HybridResult
 from application.services.simulation_service import SimulationService
 
 
@@ -53,16 +53,12 @@ class RunHybridSimulationResponse(BaseResponse):
     
     Attributes:
         success: Whether simulation completed successfully
-        population_result: Population model result
-        agent_result: Agent model result
-        comparison: Dictionary with comparative analysis
+        result: HybridResult containing both simulation results and comparison
         error: Error message if simulation failed
         execution_time_seconds: Time taken to execute
         timestamp: ISO timestamp of execution
     """
-    population_result: Optional[PopulationResult] = None
-    agent_result: Optional[AgentResult] = None
-    comparison: Optional[Dict] = None
+    result: Optional[HybridResult] = None
 
 
 class RunHybridSimulation(UseCase[RunHybridSimulationRequest, RunHybridSimulationResponse]):
@@ -180,7 +176,7 @@ class RunHybridSimulation(UseCase[RunHybridSimulationRequest, RunHybridSimulatio
         )
         
         # Execute hybrid simulation
-        pop_result, agent_result, comparison = self.simulation_service.run_hybrid_simulation(
+        hybrid_result = self.simulation_service.run_hybrid_simulation(
             config=config,
             num_predators=request.num_predators,
             predator_species=request.predator_species
@@ -189,7 +185,5 @@ class RunHybridSimulation(UseCase[RunHybridSimulationRequest, RunHybridSimulatio
         # Return success response
         return RunHybridSimulationResponse(
             success=True,
-            population_result=pop_result,
-            agent_result=agent_result,
-            comparison=comparison
+            result=hybrid_result
         )

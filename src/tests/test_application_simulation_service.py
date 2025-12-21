@@ -17,7 +17,7 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 from application.services.simulation_service import SimulationService
-from application.dtos import SimulationConfig, PopulationResult, AgentResult
+from application.dtos import SimulationConfig, PopulationResult, AgentResult, HybridResult
 
 
 class TestSimulationService(unittest.TestCase):
@@ -64,16 +64,17 @@ class TestSimulationService(unittest.TestCase):
     
     def test_run_hybrid_simulation(self):
         """Test running both simulations in parallel."""
-        pop_result, agent_result, comparison = self.service.run_hybrid_simulation(self.config)
+        hybrid_result = self.service.run_hybrid_simulation(self.config)
         
-        self.assertIsInstance(pop_result, PopulationResult)
-        self.assertIsInstance(agent_result, AgentResult)
-        self.assertIsInstance(comparison, dict)
+        self.assertIsInstance(hybrid_result, HybridResult)
+        self.assertIsInstance(hybrid_result.population_result, PopulationResult)
+        self.assertIsInstance(hybrid_result.agent_result, AgentResult)
+        self.assertIsInstance(hybrid_result.comparison_data, dict)
         
         # Check comparison structure (updated keys)
-        self.assertIn('population_model', comparison)
-        self.assertIn('agent_model', comparison)
-        self.assertIn('differences', comparison)
+        self.assertIn('population_model', hybrid_result.comparison_data)
+        self.assertIn('agent_model', hybrid_result.comparison_data)
+        self.assertIn('differences', hybrid_result.comparison_data)
     
     def test_save_and_load_checkpoint_population(self):
         """Test saving and loading population simulation checkpoint."""
@@ -208,13 +209,13 @@ class TestSimulationService(unittest.TestCase):
     
     def test_hybrid_simulation_with_predators(self):
         """Test hybrid simulation with predator agents."""
-        pop_result, agent_result, comparison = self.service.run_hybrid_simulation(
+        hybrid_result = self.service.run_hybrid_simulation(
             config=self.config,
             num_predators=5
         )
         
-        self.assertEqual(agent_result.num_predators_initial, 5)
-        self.assertIn('agent_model', comparison)
+        self.assertEqual(hybrid_result.agent_result.num_predators_initial, 5)
+        self.assertIn('agent_model', hybrid_result.comparison_data)
     
     def test_checkpoint_metadata(self):
         """Test that checkpoint metadata is properly saved."""

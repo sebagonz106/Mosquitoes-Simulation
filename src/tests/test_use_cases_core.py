@@ -22,7 +22,7 @@ from application.use_cases import (
     ValidationError,
     ExecutionError
 )
-from application.dtos import PopulationResult, AgentResult
+from application.dtos import PopulationResult, AgentResult, HybridResult
 
 
 class TestRunPopulationSimulation(unittest.TestCase):
@@ -326,13 +326,14 @@ class TestRunHybridSimulation(unittest.TestCase):
         
         self.assertTrue(response.success)
         self.assertIsNone(response.error)
-        self.assertIsInstance(response.population_result, PopulationResult)
-        self.assertIsInstance(response.agent_result, AgentResult)
-        self.assertIsInstance(response.comparison, dict)
-        assert response.comparison is not None  # Type narrowing
-        self.assertIn('population_model', response.comparison)
-        self.assertIn('agent_model', response.comparison)
-        self.assertIn('differences', response.comparison)
+        self.assertIsInstance(response.result, HybridResult)
+        assert response.result is not None  # Type narrowing
+        self.assertIsInstance(response.result.population_result, PopulationResult)
+        self.assertIsInstance(response.result.agent_result, AgentResult)
+        self.assertIsInstance(response.result.comparison_data, dict)
+        self.assertIn('population_model', response.result.comparison_data)
+        self.assertIn('agent_model', response.result.comparison_data)
+        self.assertIn('differences', response.result.comparison_data)
         self.assertIsNotNone(response.execution_time_seconds)
     
     def test_successful_execution_with_predators(self):
@@ -354,8 +355,8 @@ class TestRunHybridSimulation(unittest.TestCase):
         response = self.use_case.execute(request)
         
         self.assertTrue(response.success)
-        assert response.agent_result is not None  # Type narrowing
-        self.assertEqual(response.agent_result.num_predators_initial, 5)
+        assert response.result is not None  # Type narrowing
+        self.assertEqual(response.result.agent_result.num_predators_initial, 5)
     
     def test_validation_negative_adults(self):
         """Test validation fails for zero adults."""
@@ -377,8 +378,8 @@ class TestRunHybridSimulation(unittest.TestCase):
         """Test comparison dictionary has expected structure."""
         response = self.use_case.execute(self.valid_request)
         
-        comparison = response.comparison
-        assert comparison is not None  # Type narrowing
+        assert response.result is not None  # Type narrowing
+        comparison = response.result.comparison_data
         
         # Check population_model keys
         self.assertIn('final_population', comparison['population_model'])
