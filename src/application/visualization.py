@@ -111,8 +111,10 @@ def plot_population_total(
     ax.legend(fontsize=10)
     
     # Add statistics text box
-    stats_text = f"Mean: {result.statistics['mean_population']:.1f}\n"
-    stats_text += f"Final: {result.statistics['final_population']}"
+    mean_pop = result.statistics.get('mean_total', result.statistics.get('mean_population', 0))
+    final_pop = result.statistics.get('final_population', 0)
+    stats_text = f"Mean: {mean_pop:.1f}\n"
+    stats_text += f"Final: {final_pop}"
     ax.text(0.02, 0.98, stats_text, transform=ax.transAxes,
            verticalalignment='top', bbox=dict(boxstyle='round', 
            facecolor='wheat', alpha=0.5), fontsize=10)
@@ -204,8 +206,9 @@ def plot_agent_survival(
     fig, ax = plt.subplots(figsize=figsize)
     
     days = [stat['day'] for stat in result.daily_stats]
-    vectors_alive = [stat['vectors_alive'] for stat in result.daily_stats]
-    predators_alive = [stat['predators_alive'] for stat in result.daily_stats]
+    # Handle both key names for compatibility
+    vectors_alive = [stat.get('num_vectors_alive', stat.get('vectors_alive', 0)) for stat in result.daily_stats]
+    predators_alive = [stat.get('num_predators_alive', stat.get('predators_alive', 0)) for stat in result.daily_stats]
     
     ax.plot(days, vectors_alive, marker='o', linewidth=2, 
             label=f'Vectors (Survival: {result.get_survival_rate_vectors():.1%})', 
@@ -252,8 +255,26 @@ def plot_agent_metrics(
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=figsize)
     
     days = [stat['day'] for stat in result.daily_stats]
-    eggs_laid = [stat['total_eggs_laid'] for stat in result.daily_stats]
-    prey_consumed = [stat['total_prey_consumed'] for stat in result.daily_stats]
+    
+    # Calculate cumulative eggs laid (handle both daily and total keys)
+    eggs_laid = []
+    cumulative_eggs = 0
+    for stat in result.daily_stats:
+        if 'total_eggs_laid' in stat:
+            eggs_laid.append(stat['total_eggs_laid'])
+        else:
+            cumulative_eggs += stat.get('eggs_laid_today', 0)
+            eggs_laid.append(cumulative_eggs)
+    
+    # Calculate cumulative prey consumed (handle both daily and total keys)
+    prey_consumed = []
+    cumulative_prey = 0
+    for stat in result.daily_stats:
+        if 'total_prey_consumed' in stat:
+            prey_consumed.append(stat['total_prey_consumed'])
+        else:
+            cumulative_prey += stat.get('prey_consumed_today', 0)
+            prey_consumed.append(cumulative_prey)
     
     # Eggs laid
     ax1.plot(days, eggs_laid, marker='o', linewidth=2, color='green')

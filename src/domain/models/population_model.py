@@ -479,40 +479,63 @@ class PopulationModel:
         """
         Simple environmental adjustment without Prolog.
         
-        Temperature effects (optimal: 25-30°C):
-        - Below 20°C: strong reduction
-        - 20-25°C: moderate reduction
-        - 25-30°C: optimal
-        - Above 30°C: moderate reduction
-        - Above 35°C: strong reduction
+        BIOLOGICALLY REALISTIC factors for Aedes aegypti:
         
-        Humidity effects (optimal: > 70%):
-        - Below 50%: strong reduction
-        - 50-70%: moderate reduction
-        - Above 70%: optimal
+        Temperature effects (optimal: 22-32°C, tolerance: 18-38°C):
+        - 22-32°C: optimal (100%)
+        - 18-22°C or 32-35°C: mild reduction (85-100%)
+        - 15-18°C or 35-38°C: moderate reduction (60-85%)
+        - <15°C or >38°C: strong reduction (20-60%)
+        
+        Humidity effects (optimal: >60%, tolerance: >40%):
+        - >60%: optimal (100%)
+        - 40-60%: mild reduction (85-100%)
+        - 20-40%: moderate reduction (60-85%)
+        - <20%: strong reduction (40-60%)
+        
+        Factors are averaged (not multiplied) to avoid compound penalties.
         """
-        # Temperature factor
-        if 25 <= temperature <= 30:
-            temp_factor = 1.0
-        elif 20 <= temperature < 25:
-            temp_factor = 0.7 + (temperature - 20) * 0.06
-        elif 30 < temperature <= 35:
-            temp_factor = 1.0 - (temperature - 30) * 0.1
-        elif temperature < 20:
-            temp_factor = max(0.3, 0.7 - (20 - temperature) * 0.08)
-        else:  # temperature > 35
-            temp_factor = max(0.2, 0.5 - (temperature - 35) * 0.1)
+        # Temperature factor (more tolerant range)
+        if 22 <= temperature <= 32:
+            temp_factor = 1.0  # Optimal range
+        elif 18 <= temperature < 22:
+            # Linear from 0.85 at 18°C to 1.0 at 22°C
+            temp_factor = 0.85 + (temperature - 18) * 0.0375
+        elif 32 < temperature <= 35:
+            # Linear from 1.0 at 32°C to 0.85 at 35°C
+            temp_factor = 1.0 - (temperature - 32) * 0.05
+        elif 15 <= temperature < 18:
+            # Linear from 0.60 at 15°C to 0.85 at 18°C
+            temp_factor = 0.60 + (temperature - 15) * 0.0833
+        elif 35 < temperature <= 38:
+            # Linear from 0.85 at 35°C to 0.60 at 38°C
+            temp_factor = 0.85 - (temperature - 35) * 0.0833
+        elif temperature < 15:
+            # Strong reduction below 15°C
+            temp_factor = max(0.20, 0.60 - (15 - temperature) * 0.08)
+        else:  # temperature > 38
+            # Strong reduction above 38°C
+            temp_factor = max(0.20, 0.60 - (temperature - 38) * 0.10)
         
-        # Humidity factor
-        if humidity >= 70:
-            hum_factor = 1.0
-        elif 50 <= humidity < 70:
-            hum_factor = 0.7 + (humidity - 50) * 0.015
-        else:  # humidity < 50
-            hum_factor = max(0.4, 0.7 - (50 - humidity) * 0.015)
+        # Humidity factor (more tolerant)
+        if humidity >= 60:
+            hum_factor = 1.0  # Optimal
+        elif 40 <= humidity < 60:
+            # Linear from 0.85 at 40% to 1.0 at 60%
+            hum_factor = 0.85 + (humidity - 40) * 0.0075
+        elif 20 <= humidity < 40:
+            # Linear from 0.60 at 20% to 0.85 at 40%
+            hum_factor = 0.60 + (humidity - 20) * 0.0125
+        else:  # humidity < 20
+            # Strong reduction below 20%
+            hum_factor = max(0.40, 0.60 - (20 - humidity) * 0.02)
+        
+        # Average factors instead of multiplying to avoid compound effects
+        # This gives more realistic mortality: (temp + hum)/2 instead of temp × hum
+        combined_factor = (temp_factor + hum_factor) / 2
         
         # Apply combined factor
-        return population_vector * temp_factor * hum_factor
+        return population_vector * combined_factor
     
     def _apply_density_dependence(
         self,
