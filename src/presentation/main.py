@@ -15,7 +15,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 from presentation.styles.theme import Colors, Fonts, Spacing, configure_styles
 from presentation.components import Sidebar, LogPanel
-from presentation.views import HomeView
+from presentation.views import HomeView, SimulationView, ResultsView
+from presentation.controllers import SimulationController
 
 
 class Application(tk.Tk):
@@ -46,6 +47,9 @@ class Application(tk.Tk):
         # Current view tracking
         self.current_view_name = 'home'
         self.current_view_widget = None
+        
+        # Initialize controller
+        self.simulation_controller = SimulationController()
         
         # Setup UI
         self._setup_ui()
@@ -145,10 +149,12 @@ class Application(tk.Tk):
             self.current_view_widget = HomeView(self.content_frame, on_navigate=self._on_navigate)
             
         elif view_name == 'simulation':
-            # Placeholder for simulation view
-            self.current_view_widget = self._create_placeholder_view(
-                "Simulación",
-                "Vista de configuración y ejecución de simulaciones.\n\n(En desarrollo)"
+            # Simulation configuration view
+            self.current_view_widget = SimulationView(
+                self.content_frame,
+                controller=self.simulation_controller,
+                on_results=self._on_simulation_results,
+                on_log=self._on_log_message
             )
             
         elif view_name == 'compare':
@@ -256,6 +262,45 @@ class Application(tk.Tk):
         message_label.pack(pady=(Spacing.PADDING_MEDIUM, 0))
         
         return frame
+    
+    def _on_simulation_results(self, result):
+        """
+        Handle simulation results.
+        
+        Args:
+            result: Simulation result (PopulationResult, AgentResult, or HybridResult)
+        """
+        # Remove current view
+        if self.current_view_widget:
+            self.current_view_widget.destroy()
+            self.current_view_widget = None
+        
+        # Create results view
+        self.current_view_widget = ResultsView(self.content_frame, result)
+        self.current_view_widget.pack(fill=tk.BOTH, expand=True)
+        
+        # Reset scroll
+        self.content_canvas.yview_moveto(0)
+        
+        # Log
+        self.log_panel.log_success("Resultados cargados - use los botones para exportar")
+        
+    def _on_log_message(self, message: str, level: str):
+        """
+        Handle log messages from views.
+        
+        Args:
+            message: Log message
+            level: Log level ('info', 'success', 'error', 'warning')
+        """
+        if level == 'info':
+            self.log_panel.log_info(message)
+        elif level == 'success':
+            self.log_panel.log_success(message)
+        elif level == 'error':
+            self.log_panel.log_error(message)
+        elif level == 'warning':
+            self.log_panel.log_warning(message)
     
     def _on_frame_configure(self, event=None):
         """Reset scroll region when frame size changes."""
