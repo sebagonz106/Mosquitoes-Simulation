@@ -312,7 +312,11 @@ class PopulationModel:
     
     def step(self, day: int) -> PopulationState:
         """
-        Advance population by one time step.
+        Advance population by one time step with optional Prolog integration.
+        
+        When Prolog bridge is available, survival rates are dynamically adjusted
+        based on environmental conditions (temperature, humidity) before applying
+        Leslie matrix projection. Otherwise, uses static rates from configuration.
         
         Args:
             day: Current day number
@@ -337,13 +341,19 @@ class PopulationModel:
         # Get environmental conditions
         conditions = self.environment_model.get_conditions(day)
         
+        # Update survival rates from Prolog if available
+        if self.prolog_bridge:
+            self._update_survival_rates_from_prolog(
+                day, conditions.temperature, conditions.humidity
+            )
+        
         # Get current population vector
         current_vector = self.current_state.to_vector()
         
-        # Apply Leslie matrix projection
+        # Apply Leslie matrix projection with adjusted rates
         projected_vector = self.leslie_matrix.matrix @ current_vector
         
-        # Apply environmental modulation
+        # Apply environmental modulation (fallback when Prolog unavailable)
         projected_vector = self._apply_environmental_effects(
             projected_vector,
             conditions.temperature,
@@ -422,6 +432,126 @@ class PopulationModel:
             simulation_days=days
         )
     
+    def _update_survival_rates_from_prolog(
+        self,
+        day: int,
+        temperature: float,
+        humidity: float
+    ) -> None:
+        """
+        Query Prolog for adjusted survival rates and update Leslie matrix.
+        
+        Implements integration between Python and Prolog engines:
+        - Python handles linear algebra (Leslie matrix projection)
+        - Prolog handles biological decisions (environmentally-adjusted rates)
+        
+        Args:
+            day: Current simulation day
+            temperature: Current temperature (°C)
+            humidity: Current relative humidity (%)
+        
+        Side Effects:
+            Updates self.leslie_matrix.matrix if Prolog returns valid rates.
+            Maintains current rates if Prolog query fails (implicit fallback).
+        
+        Example:
+            For Temp=28°C, Hum=75%:
+            - Prolog computes: egg→larva = 0.7 × 0.95 × 0.75 = 0.498
+            - Updates Leslie matrix with adjusted rate
+        """
+        try:
+            # Consultar Prolog para todas las tasas de supervivencia
+            survival_dict = self.prolog_bridge.get_survival_rates(
+                species=self.species_name,
+                day=day,
+                temp=temperature,
+                humidity=humidity
+            )
+            
+            if not survival_dict:
+                # Prolog no retornó tasas: usar las actuales (sin logging)
+                return
+            
+            # Convertir dict de transiciones a lista ordenada para Leslie matrix
+            # La matriz Leslie espera: [egg→larva, larva→pupa, pupa→adult]
+            survival_list = self._convert_prolog_rates_to_leslie_format(survival_dict)
+            
+            if survival_list:
+                # Actualizar matriz Leslie con tasas ajustadas
+                self.leslie_matrix.update_survival_rates(survival_list)
+                
+                # Log solo en modo debug
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.debug(
+                    f"Day {day}: Updated survival rates from Prolog "
+                    f"(T={temperature:.1f}°C, H={humidity:.0f}%): {survival_list}"
+                )
+        
+        except Exception as e:
+            # Falló consulta Prolog: mantener tasas actuales (fallback silencioso)
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.debug(f"Day {day}: Prolog query failed, using static rates: {e}")
+    
+    def _convert_prolog_rates_to_leslie_format(
+        self,
+        survival_dict: Dict[tuple, float]
+    ) -> List[float]:
+        """
+        Convert Prolog transition dictionary to ordered list for Leslie matrix.
+        
+        The simplified Leslie matrix uses 4 life stages:
+        - eggs (stage 0)
+        - larvae (stage 1, aggregates larva_l1-l4)
+        - pupae (stage 2)
+        - adults (stage 3)
+        
+        Args:
+            survival_dict: Dictionary with transitions {(from, to): rate}
+        
+        Returns:
+            List [P_egg→larva, P_larva→pupa, P_pupa→adult]
+            Empty list if critical transitions are missing
+        
+        Example:
+            >>> survival_dict = {
+            ...     ('egg', 'larva_l1'): 0.75,
+            ...     ('larva_l4', 'pupa'): 0.80,
+            ...     ('pupa', 'adult_female'): 0.90
+            ... }
+            >>> _convert_prolog_rates_to_leslie_format(survival_dict)
+            [0.75, 0.80, 0.90]
+        """
+        # Map Prolog transitions to Leslie matrix indices
+        # Use key transitions representing each aggregated stage
+        key_transitions = [
+            ('egg', 'larva_l1'),           # eggs → larvae
+            ('larva_l4', 'pupa'),          # larvae → pupae
+            ('pupa', 'adult_female')       # pupae → adults
+        ]
+        
+        survival_list = []
+        for transition in key_transitions:
+            if transition in survival_dict:
+                rate = survival_dict[transition]
+                # Additional range validation
+                if 0 <= rate <= 1:
+                    survival_list.append(rate)
+                else:
+                    # Rate out of range: abort update
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.warning(
+                        f"Prolog rate out of range for {transition}: {rate}"
+                    )
+                    return []
+            else:
+                # Missing critical transition: skip update
+                return []
+        
+        return survival_list
+    
     def _apply_environmental_effects(
         self,
         population_vector: np.ndarray,
@@ -429,9 +559,11 @@ class PopulationModel:
         humidity: float
     ) -> np.ndarray:
         """
-        Modify vital rates based on environmental conditions.
+        Apply environmental effects to population vector (fallback mode).
         
-        Uses Prolog inference if available, otherwise uses simple rules.
+        When Prolog bridge is available, survival rate adjustments are handled
+        by _update_survival_rates_from_prolog(), making this method redundant.
+        Retained for compatibility when Prolog is unavailable.
         
         Args:
             population_vector: Current population [eggs, larvae, pupae, adults]
@@ -439,36 +571,16 @@ class PopulationModel:
             humidity: Current humidity (%)
         
         Returns:
-            Adjusted population vector
+            Population vector (unchanged if Prolog is active)
         """
+        # Skip if Prolog already adjusted rates in step()
         if self.prolog_bridge is not None:
-            # Use Prolog to compute environmental adjustments
-            try:
-                # Query for temperature effect
-                temp_query = f"compute_temperature_factor({temperature}, Factor)"
-                temp_result = list(self.prolog_bridge.query(temp_query))
-                temp_factor = temp_result[0]['Factor'] if temp_result else 1.0
-                
-                # Query for humidity effect
-                hum_query = f"compute_humidity_factor({humidity}, Factor)"
-                hum_result = list(self.prolog_bridge.query(hum_query))
-                hum_factor = hum_result[0]['Factor'] if hum_result else 1.0
-                
-                # Apply combined effect
-                population_vector *= (temp_factor * hum_factor)
-                
-            except Exception as e:
-                # Fall back to simple rules if Prolog fails
-                population_vector = self._simple_environmental_adjustment(
-                    population_vector, temperature, humidity
-                )
-        else:
-            # Use simple rules
-            population_vector = self._simple_environmental_adjustment(
-                population_vector, temperature, humidity
-            )
+            return population_vector
         
-        return population_vector
+        # Fallback: use simple adjustment when Prolog unavailable
+        return self._simple_environmental_adjustment(
+            population_vector, temperature, humidity
+        )
     
     def _simple_environmental_adjustment(
         self,

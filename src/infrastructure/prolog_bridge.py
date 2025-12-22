@@ -673,6 +673,105 @@ class PrologBridge:
         """
         return [str(f) for f in self.loaded_files]
     
+    def get_survival_rates(
+        self, 
+        species: str, 
+        day: int,
+        temp: float, 
+        humidity: float
+    ) -> Dict[tuple, float]:
+        """
+        Query Prolog to obtain environmentally-adjusted survival rates.
+        
+        Queries the effective_survival/6 predicate for all relevant life stage
+        transitions, applying temperature and humidity factors to base survival rates.
+        
+        Args:
+            species: Species identifier (e.g., 'aedes_aegypti')
+            day: Current simulation day
+            temp: Current temperature (°C)
+            humidity: Current relative humidity (%)
+        
+        Returns:
+            Dictionary mapping stage transitions to adjusted survival rates:
+            {
+                ('egg', 'larva_l1'): 0.75,
+                ('larva_l1', 'larva_l2'): 0.82,
+                ('larva_l2', 'larva_l3'): 0.85,
+                ('larva_l3', 'larva_l4'): 0.87,
+                ('larva_l4', 'pupa'): 0.80,
+                ('pupa', 'adult_female'): 0.90
+            }
+            
+            Returns empty dict if Prolog query fails (allows fallback to static rates).
+        
+        Example:
+            >>> rates = bridge.get_survival_rates('aedes_aegypti', 50, 28.0, 75.0)
+            >>> rates[('egg', 'larva_l1')]
+            0.748
+        """
+        survival_dict = {}
+        
+        # Definir todas las transiciones relevantes para mosquitos
+        transitions = [
+            ('egg', 'larva_l1'),
+            ('larva_l1', 'larva_l2'),
+            ('larva_l2', 'larva_l3'),
+            ('larva_l3', 'larva_l4'),
+            ('larva_l4', 'pupa'),
+            ('pupa', 'adult_female'),
+            ('pupa', 'adult_male')
+        ]
+        
+        try:
+            # Actualizar estado ambiental en Prolog
+            self.set_environment_state(day, temp, humidity)
+            
+            # Consultar cada transición
+            for from_stage, to_stage in transitions:
+                query = (
+                    f"effective_survival({species}, {from_stage}, {to_stage}, "
+                    f"{temp}, {humidity}, Rate)"
+                )
+                
+                try:
+                    result = self.query_once(query)
+                    if result and 'Rate' in result:
+                        rate = float(result['Rate'])
+                        # Validar que esté en rango [0, 1]
+                        if 0 <= rate <= 1:
+                            survival_dict[(from_stage, to_stage)] = rate
+                        else:
+                            logger.warning(
+                                f"Prolog returned out-of-range survival rate "
+                                f"for {from_stage}→{to_stage}: {rate}"
+                            )
+                except Exception as e:
+                    logger.debug(
+                        f"Could not query survival for {from_stage}→{to_stage}: {e}"
+                    )
+                    # Continuar con la siguiente transición
+                    continue
+            
+            if survival_dict:
+                logger.debug(
+                    f"Retrieved {len(survival_dict)} survival rates from Prolog "
+                    f"(Day {day}, T={temp:.1f}°C, H={humidity:.0f}%)"
+                )
+            else:
+                logger.debug(
+                    f"No survival rates retrieved from Prolog (Day {day}) - "
+                    f"will use static rates"
+                )
+                
+        except Exception as e:
+            logger.warning(
+                f"Failed to retrieve survival rates from Prolog: {e} - "
+                f"falling back to static rates"
+            )
+        
+        return survival_dict
+
     def __repr__(self) -> str:
         """String representation of PrologBridge."""
         return (

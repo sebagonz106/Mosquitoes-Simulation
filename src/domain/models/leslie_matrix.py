@@ -136,6 +136,107 @@ class LeslieMatrix:
         if adult_survival > 0:
             self.matrix[self.n_stages - 1, self.n_stages - 1] = adult_survival
     
+    def update_survival_rates(self, survival: List[float]) -> None:
+        """
+        Update survival rates in the Leslie matrix dynamically.
+        
+        Modifies the subdiagonal of the matrix to reflect changing environmental
+        conditions such as temperature and humidity effects on survival.
+        
+        Args:
+            survival: Updated survival rates [P₁, P₂, ..., Pₙ₋₁]
+                     Must be in range [0, 1]
+        
+        Raises:
+            ValueError: If dimensions mismatch or values out of range
+        
+        Example:
+            >>> L = LeslieMatrix([0, 0, 0, 100], [0.7, 0.8, 0.9])
+            >>> L.update_survival_rates([0.75, 0.85, 0.92])
+            >>> L.matrix[1, 0]
+            0.75
+        """
+        if len(survival) != self.n_stages - 1:
+            raise ValueError(
+                f"Survival rates length ({len(survival)}) must be "
+                f"n_stages - 1 ({self.n_stages - 1})"
+            )
+        
+        # Validar que estén en rango [0, 1]
+        for i, rate in enumerate(survival):
+            if not (0 <= rate <= 1):
+                raise ValueError(
+                    f"Survival rate {i} is out of range [0, 1]: {rate}"
+                )
+        
+        # Actualizar subdiagonal
+        for i in range(self.n_stages - 1):
+            self.matrix[i + 1, i] = survival[i]
+    
+    def update_fecundity(self, fecundity: List[float]) -> None:
+        """
+        Update fecundity rates in the Leslie matrix dynamically.
+        
+        Modifies the first row of the matrix to reflect changes in reproductive
+        capacity due to factors such as density dependence, nutrition, or adult age.
+        
+        Args:
+            fecundity: Updated fecundity rates [F₁, F₂, ..., Fₙ]
+                      Must be >= 0
+        
+        Raises:
+            ValueError: If dimensions mismatch or negative values provided
+        
+        Example:
+            >>> L = LeslieMatrix([0, 0, 0, 100], [0.7, 0.8, 0.9])
+            >>> L.update_fecundity([0, 0, 0, 70])
+            >>> L.matrix[0, 3]
+            70.0
+        """
+        if len(fecundity) != self.n_stages:
+            raise ValueError(
+                f"Fecundity length ({len(fecundity)}) must match "
+                f"n_stages ({self.n_stages})"
+            )
+        
+        # Validar que sean no negativos
+        for i, rate in enumerate(fecundity):
+            if rate < 0:
+                raise ValueError(
+                    f"Fecundity rate {i} must be non-negative: {rate}"
+                )
+        
+        # Actualizar primera fila
+        self.matrix[0, :] = fecundity
+    
+    def get_survival_rates(self) -> List[float]:
+        """
+        Retrieve current survival rates from the matrix.
+        
+        Returns:
+            List of survival rates [P₁, P₂, ..., Pₙ₋₁]
+        
+        Example:
+            >>> L = LeslieMatrix([0, 0, 0, 100], [0.7, 0.8, 0.9])
+            >>> L.get_survival_rates()
+            [0.7, 0.8, 0.9]
+        """
+        return [self.matrix[i + 1, i] for i in range(self.n_stages - 1)]
+    
+    def get_fecundity_rates(self) -> List[float]:
+        """
+        Retrieve current fecundity rates from the matrix.
+        
+        Returns:
+            List of fecundity rates [F₁, F₂, ..., Fₙ]
+        
+        Example:
+            >>> L = LeslieMatrix([0, 0, 0, 100], [0.7, 0.8, 0.9])
+            >>> L.get_fecundity_rates()
+            [0, 0, 0, 100]
+        """
+        return list(self.matrix[0, :])
+    
     def project(
         self,
         initial_population: np.ndarray,

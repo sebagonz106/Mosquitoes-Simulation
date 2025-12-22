@@ -82,10 +82,22 @@ class PopulationService:
             days=config.duration_days + 1
         )
         
-        # Create PopulationModel
+        # Initialize PrologBridge for dynamic survival rate adjustment
+        # Falls back to None if unavailable (uses static rates)
+        prolog_bridge = None
+        try:
+            from infrastructure.prolog_bridge import PrologBridge
+            prolog_bridge = PrologBridge(config_manager)
+            prolog_bridge.inject_parameters()
+            logger.debug("PrologBridge initialized for dynamic simulation")
+        except Exception as e:
+            logger.debug(f"PrologBridge not available, using static rates: {e}")
+        
+        # Create PopulationModel with optional Prolog integration
         model = PopulationModel(
             species_config=species_config,
             environment_model=environment_model,
+            prolog_bridge=prolog_bridge,
             stochastic_mode=True,
             seed=config.random_seed
         )
