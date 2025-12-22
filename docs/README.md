@@ -64,13 +64,27 @@ Este sistema permite modelar computacionalmente la efectividad de introducir *To
 
 ### Funcionalidades
 
-- **Tres modos de simulación**: Poblacional, basado en agentes, híbrido
+#### Backend (Completado)
+- **Simulación poblacional**: Modelo basado en matrices de Leslie con integración Prolog
+- **Tasas de supervivencia dinámicas**: Motor Prolog ajusta tasas según condiciones ambientales en tiempo real
 - **Comparación de escenarios**: Análisis de sensibilidad multi-parámetro
 - **Persistencia**: Sistema de checkpoints para guardar/restaurar simulaciones
 - **Configuración flexible**: Parámetros biológicos externalizados en JSON
-- **Integración Prolog**: Motor de inferencia para decisiones de agentes
-- **Visualización**: Gráficos de evolución temporal y comparaciones
-- **Extensibilidad**: Arquitectura modular para agregar nuevas especies
+- **Visualización**: Gráficos de evolución temporal y comparaciones estadísticas
+- **Arquitectura limpia**: Separación de responsabilidades en capas independientes
+
+#### Frontend (Completado)
+- **Interfaz gráfica (GUI)**: Aplicación de escritorio con tkinter
+- **Validación en tiempo real**: Indicadores visuales (✓/⚠/✗) para rangos de parámetros
+- **Tooltips informativos**: Ayuda contextual detallada en todos los parámetros
+- **Presets de escenarios**: 10 escenarios predefinidos en 5 categorías (Base, Estrés, Control, Óptimas, Brote)
+- **Configuración visual**: Formularios intuitivos para parámetros de simulación
+- **Visualización de resultados**: Gráficos integrados de evolución poblacional
+
+#### En Desarrollo
+- **Simulación basada en agentes**: Arquitectura implementada, pendiente integración GUI
+- **Control biológico con depredación**: Bases sentadas en código Prolog, pendiente activación
+- **Simulación híbrida**: Comparación poblacional vs. agentes pendiente
 
 ---
 
@@ -81,7 +95,8 @@ El sistema implementa **Clean Architecture** (Arquitectura Limpia), separando re
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                    CAPA DE PRESENTACIÓN                     │
-│            (En desarrollo - GUI/CLI/API REST)               │
+│         GUI (Tkinter) - Vistas, Controladores, Widgets      │
+│   Validación | Tooltips | Presets | Visualización Gráfica  │
 └─────────────────────────────────────────────────────────────┘
                               │
                               ▼
@@ -142,7 +157,12 @@ Comunicación con recursos externos:
 - **PrologBridge**: Interfaz Python-SWI-Prolog vía PySwip
 
 #### Capa de Presentación
-*En desarrollo* - Interfaces de usuario para interacción con el sistema.
+Interfaces de usuario implementadas y en desarrollo:
+- **GUI**: Aplicación de escritorio con Tkinter (implementada)
+- **Vistas**: SimulationView, ResultsView, HomeView
+- **Widgets**: Tooltips, validación en tiempo real, presets de escenarios
+- **CLI**: Interfaz de línea de comandos (pendiente)
+- **API REST**: Endpoints para integración (pendiente)
 
 ---
 
@@ -159,6 +179,7 @@ Comunicación con recursos externos:
 | PySwip | 0.2.10+ | Bridge Python-Prolog |
 | Pandas | 1.3+ | Análisis de datos |
 | Seaborn | 0.11+ | Visualización estadística |
+| Tkinter | Incluido en Python | GUI (incluido en instalación estándar) |
 
 ### Hardware Recomendado
 
@@ -254,7 +275,14 @@ Mosquitoes-Simulation/
 │   │   ├── config.py            # Gestión de configuración
 │   │   └── prolog_bridge.py     # Puente Python-Prolog
 │   │
-│   ├── presentation/            # Capa de Presentación (en desarrollo)
+│   ├── presentation/            # Capa de Presentación
+│   │   ├── views/               # Vistas de la aplicación
+│   │   ├── controllers/         # Controladores MVC
+│   │   ├── components/          # Componentes reutilizables
+│   │   ├── widgets/             # Widgets personalizados (tooltips)
+│   │   ├── data/                # Datos estáticos (presets, rangos)
+│   │   ├── styles/              # Temas y estilos visuales
+│   │   └── main.py              # Punto de entrada GUI
 │   │
 │   ├── prolog/                  # Base de Conocimiento Prolog
 │   │   ├── knowledge_base/      # Ontología y hechos
@@ -272,7 +300,44 @@ Mosquitoes-Simulation/
 
 ## Guía de Uso
 
-### Ejemplo Básico: Simulación Poblacional
+### Interfaz Gráfica (GUI)
+
+La aplicación cuenta con una interfaz gráfica completa que permite configurar y ejecutar simulaciones sin código:
+
+```bash
+cd src/presentation
+python main.py
+```
+
+#### Características de la GUI:
+
+1. **Escenarios Predefinidos**
+   - 10 escenarios organizados en 5 categorías
+   - Carga automática de parámetros con un clic
+   - Vista previa de descripción de cada escenario
+
+2. **Validación en Tiempo Real**
+   - Indicadores visuales: ✓ (válido), ⚠ (fuera de rango), ✗ (error)
+   - Actualización instantánea al modificar valores
+   - Tooltips con mensajes de error específicos
+
+3. **Ayuda Contextual**
+   - Tooltips informativos en todos los parámetros
+   - Información sobre rangos válidos y valores típicos
+   - Guías de referencia para configuraciones
+
+4. **Configuración de Simulación**
+   - Selección de especie (Aedes aegypti / Toxorhynchites)
+   - Poblaciones iniciales (huevos, larvas, pupas, adultos)
+   - Condiciones ambientales (temperatura, humedad, agua)
+   - Duración de simulación (1-365 días)
+
+5. **Visualización de Resultados**
+   - Gráficos de evolución poblacional por estadio
+   - Estadísticas clave (pico poblacional, tendencias)
+   - Exportación de resultados
+
+### Ejemplo Básico: Simulación Poblacional (API)
 
 ```python
 from application.services.simulation_service import SimulationService
@@ -616,13 +681,82 @@ python -m unittest tests.test_use_cases_checkpoints -v
 
 ## Capa de Presentación
 
-> **Estado: En desarrollo**
+La capa de presentación cuenta con una **interfaz gráfica completa** implementada en Tkinter:
+  - **GUI (Graphical User Interface)**: Aplicación de escritorio funcional
+  - Vista principal con navegación por pestañas
+  - Vista de configuración de simulación con validación
+  - Vista de resultados con gráficos integrados
+  - Sistema de tooltips contextual
+  - Presets de escenarios predefinidos
+  - Tema visual profesional y consistente
 
-La capa de presentación proporcionará interfaces de usuario para interactuar con el sistema:
+### Arquitectura de Presentación
 
-- **CLI (Command Line Interface)**: Ejecución de simulaciones desde terminal
-- **GUI (Graphical User Interface)**: Interfaz gráfica para configuración visual
-- **API REST**: Endpoints para integración con otros sistemas
+La GUI implementa el patrón **Modelo-Vista-Controlador (MVC)**:
+
+- **Vistas** (`views/`): Componentes visuales (SimulationView, ResultsView, HomeView)
+- **Controladores** (`controllers/`): Lógica de interacción (SimulationController)
+- **Componentes** (`components/`): Elementos reutilizables (Sidebar, StatusBar)
+- **Widgets** (`widgets/`): Controles personalizados (ToolTip)
+- **Datos** (`data/`): Configuraciones estáticas (scenario_presets, parameter_ranges)
+- **Estilos** (`styles/`): Temas visuales (theme.py con paleta de colores profesional)
+
+---
+
+## Estado del Proyecto
+
+### Backend: Completado ✓
+
+| Componente | Estado | Descripción |
+|------------|--------|-------------|
+| **Modelos poblacionales** | ✓ Operativo | Matrices de Leslie con tasas dinámicas |
+| **Integración Prolog** | ✓ Operativo | Tasas de supervivencia ajustadas por ambiente |
+| **Servicios de simulación** | ✓ Operativo | PopulationService con fallback a tasas estáticas |
+| **Sistema de checkpoints** | ✓ Operativo | Guardar/cargar simulaciones |
+| **Casos de uso** | ✓ Operativo | 10+ casos de uso implementados |
+| **Configuración JSON** | ✓ Operativo | Parámetros externalizados por especie |
+| **Visualización** | ✓ Operativo | Matplotlib/Seaborn integrados |
+
+### Frontend: Completado ✓
+
+| Componente | Estado | Descripción |
+|------------|--------|-------------|
+| **Interfaz gráfica** | ✓ Operativo | Tkinter con arquitectura MVC |
+| **Validación de parámetros** | ✓ Operativo | Tiempo real con indicadores visuales |
+| **Tooltips informativos** | ✓ Operativo | Ayuda contextual en 9 parámetros |
+| **Presets de escenarios** | ✓ Operativo | 10 escenarios en 5 categorías |
+| **Configuración de simulación** | ✓ Operativo | Formularios con validación |
+| **Visualización de resultados** | ✓ Operativo | Gráficos integrados en GUI |
+| **Tema visual** | ✓ Operativo | Paleta profesional científica |
+
+### Funcionalidades Pendientes
+
+| Componente | Prioridad | Estado |
+|------------|-----------|--------|
+| **Simulación basada en agentes** | Alta | Código implementado, pendiente GUI |
+| **Depredación Toxorhynchites** | Alta | Reglas Prolog listas, pendiente activación |
+| **Simulación híbrida** | Media | Backend listo, pendiente interfaz |
+| **CLI** | Media | Por implementar |
+| **API REST** | Baja | Por implementar |
+| **Exportación avanzada** | Baja | Por implementar |
+
+### Integración Prolog
+
+El sistema Prolog está **totalmente integrado** para ajustar dinámicamente las tasas de supervivencia:
+
+- **Consulta activa**: Cada paso de simulación consulta `effective_survival/6`
+- **Factores ambientales**: Temperatura, humedad, disponibilidad de agua
+- **Fallback robusto**: Si Prolog falla, usa tasas estáticas del JSON
+- **Validación**: Tasas fuera de [0,1] son rechazadas automáticamente
+- **Impacto medido**: Tests muestran diferencias de +14,000% en población con tasas dinámicas
+
+#### Arquitectura de Depredación (Preparada)
+
+Las bases para depredación están implementadas pero inactivas:
+
+- **Reglas Prolog**: `predation_risk/5`, `predation_rate/4` definidas
+- **Método en modelo**: `_apply_predation_effects()` preparado
+- **Falta**: Activar llamada en `step()` y crear GUI para configuración
 
 ---
 
