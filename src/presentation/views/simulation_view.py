@@ -2,12 +2,15 @@
 Presentation Layer - Simulation View
 =====================================
 
-View for configuring and running simulations.
+View for configuring and running simulations with:
+- Parameter validation and range checking
+- Informative tooltips for all parameters
+- Preset scenarios for common use cases
 """
 
 import tkinter as tk
 from tkinter import ttk, messagebox
-from typing import Optional, Callable
+from typing import Optional, Callable, Dict
 import sys
 import os
 
@@ -16,6 +19,16 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
 from presentation.styles.theme import Colors, Fonts, Spacing
 from presentation.controllers.simulation_controller import SimulationController
+from presentation.widgets.tooltip import create_tooltip
+from presentation.data.scenario_presets import (
+    SCENARIO_PRESETS,
+    PARAMETER_RANGES,
+    PARAMETER_TOOLTIPS,
+    SCENARIO_CATEGORIES,
+    get_presets_by_category,
+    get_preset_by_name,
+    validate_parameter
+)
 from application.dtos import SimulationConfig
 
 
@@ -25,8 +38,10 @@ class SimulationView(ttk.Frame):
     
     Features:
     - Species selection
-    - Parameter configuration
-    - Simulation type selection (population/agent/hybrid)
+    - Parameter configuration with validation
+    - Informative tooltips for all parameters
+    - Scenario presets for quick configuration
+    - Real-time validation feedback
     - Run button with progress
     - Results callback
     """
@@ -65,9 +80,22 @@ class SimulationView(ttk.Frame):
         self.humidity_var = tk.StringVar(value='70.0')
         self.water_var = tk.StringVar(value='1.0')
         
+        # Validation status tracking
+        self.validation_labels: Dict[str, ttk.Label] = {}
+        
         # Option maps for dropdowns
         self.species_map = {}
         self.sim_type_map = {}
+        
+        # Trace variables for real-time validation
+        self.duration_var.trace_add('write', lambda *args: self._validate_field('duration'))
+        self.eggs_var.trace_add('write', lambda *args: self._validate_field('initial_eggs'))
+        self.larvae_var.trace_add('write', lambda *args: self._validate_field('initial_larvae'))
+        self.pupae_var.trace_add('write', lambda *args: self._validate_field('initial_pupae'))
+        self.adults_var.trace_add('write', lambda *args: self._validate_field('initial_adults'))
+        self.temp_var.trace_add('write', lambda *args: self._validate_field('temperature'))
+        self.humidity_var.trace_add('write', lambda *args: self._validate_field('humidity'))
+        self.water_var.trace_add('write', lambda *args: self._validate_field('water_availability'))
         
         self._setup_ui()
         
@@ -79,6 +107,9 @@ class SimulationView(ttk.Frame):
         
         # Header
         self._create_header(container)
+        
+        # Scenario presets section
+        self._create_presets_section(container)
         
         # Configuration form
         self._create_form(container)
@@ -112,6 +143,168 @@ class SimulationView(ttk.Frame):
         # Separator
         sep = ttk.Separator(header, orient='horizontal')
         sep.pack(fill=tk.X, pady=Spacing.PADDING_MEDIUM)
+    
+    def _create_presets_section(self, parent):
+        """Create scenario presets section."""
+        presets_frame = ttk.Frame(parent, style='Card.TFrame', relief='solid', borderwidth=1)
+        presets_frame.pack(fill=tk.X, pady=(0, Spacing.PADDING_LARGE))
+        presets_frame.configure(padding=Spacing.PADDING_LARGE)
+        
+        # Section title
+        title_row = ttk.Frame(presets_frame, style='TFrame')
+        title_row.pack(fill=tk.X, pady=(0, Spacing.PADDING_MEDIUM))
+        
+        title_label = ttk.Label(
+            title_row,
+            text="📋 Escenarios Predefinidos",
+            style='Heading.TLabel',
+            foreground=Colors.PRIMARY
+        )
+        title_label.pack(side=tk.LEFT)
+        
+        # Add tooltip for presets
+        create_tooltip(
+            title_label,
+            "Escenarios de simulación predefinidos para casos comunes.\n"
+            "Seleccione una categoría y un escenario para cargar automáticamente todos los parámetros."
+        )
+        
+        # Category and preset selection row
+        selection_row = ttk.Frame(presets_frame, style='TFrame')
+        selection_row.pack(fill=tk.X)
+        
+        # Category dropdown
+        category_label = ttk.Label(selection_row, text="Categoría:", style='TLabel', width=15)
+        category_label.pack(side=tk.LEFT, padx=(0, Spacing.PADDING_SMALL))
+        
+        self.category_var = tk.StringVar(value='baseline')
+        category_names = [(SCENARIO_CATEGORIES[cat]['name'], cat) for cat in SCENARIO_CATEGORIES]
+        category_combo = ttk.Combobox(
+            selection_row,
+            textvariable=self.category_var,
+            values=[name for name, _ in category_names],
+            state='readonly',
+            width=25,
+            font=Fonts.BODY
+        )
+        category_combo.pack(side=tk.LEFT, padx=(0, Spacing.PADDING_MEDIUM))
+        category_combo.bind('<<ComboboxSelected>>', self._on_category_changed)
+        
+        # Add category tooltip
+        create_tooltip(
+            category_combo,
+            "Categorías de escenarios:\n\n" +
+            "\n".join(f"• {cat['name']}: {cat['description']}" 
+                     for cat in SCENARIO_CATEGORIES.values()),
+            delay=300
+        )
+        
+        # Preset dropdown
+        preset_label = ttk.Label(selection_row, text="Escenario:", style='TLabel', width=15)
+        preset_label.pack(side=tk.LEFT, padx=(0, Spacing.PADDING_SMALL))
+        
+        self.preset_var = tk.StringVar()
+        self.preset_combo = ttk.Combobox(
+            selection_row,
+            textvariable=self.preset_var,
+            state='readonly',
+            width=30,
+            font=Fonts.BODY
+        )
+        self.preset_combo.pack(side=tk.LEFT, padx=(0, Spacing.PADDING_MEDIUM))
+        self.preset_combo.bind('<<ComboboxSelected>>', self._on_preset_selected)
+        
+        # Load preset button
+        load_preset_btn = ttk.Button(
+            selection_row,
+            text="⬇️ Cargar",
+            style='TButton',
+            command=self._load_preset
+        )
+        load_preset_btn.pack(side=tk.LEFT)
+        
+        # Description label (shows when preset is selected) - must be created BEFORE _update_preset_list
+        self.preset_desc_label = ttk.Label(
+            presets_frame,
+            text="",
+            style='TLabel',
+            foreground=Colors.TEXT_SECONDARY,
+            wraplength=800
+        )
+        self.preset_desc_label.pack(fill=tk.X, pady=(Spacing.PADDING_MEDIUM, 0))
+        
+        # Initialize category presets
+        self._update_preset_list()
+
+        
+    def _on_category_changed(self, event=None):
+        """Handle category selection change."""
+        self._update_preset_list()
+        
+    def _update_preset_list(self):
+        """Update preset list based on selected category."""
+        # Get selected category ID
+        category_display = self.category_var.get()
+        category_id = None
+        for name, cat_id in [(SCENARIO_CATEGORIES[c]['name'], c) for c in SCENARIO_CATEGORIES]:
+            if name == category_display:
+                category_id = cat_id
+                break
+        
+        if not category_id:
+            category_id = 'baseline'
+        
+        # Get presets for category
+        presets = get_presets_by_category(category_id)
+        if isinstance(presets, dict):
+            # If returned dict, get the list for this category
+            presets = presets.get(category_id, [])
+        
+        # Update combo values
+        preset_names = [p.name for p in presets]
+        self.preset_combo['values'] = preset_names
+        if preset_names:
+            self.preset_combo.set(preset_names[0])
+            self._on_preset_selected()
+        
+    def _on_preset_selected(self, event=None):
+        """Handle preset selection to show description."""
+        preset_name = self.preset_var.get()
+        if not preset_name:
+            return
+        
+        preset = get_preset_by_name(preset_name)
+        if preset:
+            self.preset_desc_label.config(
+                text=f"📝 {preset.description} | Especie: {preset.species} | "
+                     f"Duración: {preset.duration} días | Temp: {preset.temperature}°C"
+            )
+        
+    def _load_preset(self):
+        """Load selected preset into form."""
+        preset_name = self.preset_var.get()
+        if not preset_name:
+            messagebox.showwarning("Seleccionar Escenario", "Por favor seleccione un escenario primero.")
+            return
+        
+        preset = get_preset_by_name(preset_name)
+        if not preset:
+            messagebox.showerror("Error", f"Escenario '{preset_name}' no encontrado.")
+            return
+        
+        # Update form with preset values
+        self.species_var.set(preset.species)
+        self.duration_var.set(str(preset.duration))
+        self.eggs_var.set(str(preset.initial_eggs))
+        self.larvae_var.set(str(preset.initial_larvae))
+        self.pupae_var.set(str(preset.initial_pupae))
+        self.adults_var.set(str(preset.initial_adults))
+        self.temp_var.set(str(preset.temperature))
+        self.humidity_var.set(str(preset.humidity))
+        self.water_var.set(str(preset.water_availability))
+        
+        if self.on_log:
+            self.on_log(f"Escenario '{preset.name}' cargado correctamente", "success")
         
     def _create_form(self, parent):
         """Create configuration form."""
@@ -142,23 +335,23 @@ class SimulationView(ttk.Frame):
         # Agent and hybrid simulations are kept in code but not accessible from interface
         self.sim_type_map = {'Poblacional': 'population'}
         
-        self._create_input(basic_section, "Duración (días):", self.duration_var, "int")
+        self._create_input(basic_section, "Duración (días):", self.duration_var, "int", "duration")
         
         # Initial population section
         pop_section = self._create_section(left_col, "Población Inicial")
         
-        self._create_input(pop_section, "Huevos:", self.eggs_var, "int")
-        self._create_input(pop_section, "Larvas:", self.larvae_var, "int")
-        self._create_input(pop_section, "Pupas:", self.pupae_var, "int")
-        self._create_input(pop_section, "Adultos:", self.adults_var, "int")
+        self._create_input(pop_section, "Huevos:", self.eggs_var, "int", "initial_eggs")
+        self._create_input(pop_section, "Larvas:", self.larvae_var, "int", "initial_larvae")
+        self._create_input(pop_section, "Pupas:", self.pupae_var, "int", "initial_pupae")
+        self._create_input(pop_section, "Adultos:", self.adults_var, "int", "initial_adults")
         
         # RIGHT COLUMN
         # Environmental conditions section
         env_section = self._create_section(right_col, "Condiciones Ambientales")
         
-        self._create_input(env_section, "Temperatura (°C):", self.temp_var, "float")
-        self._create_input(env_section, "Humedad (%):", self.humidity_var, "float")
-        self._create_input(env_section, "Disponibilidad Agua (0-1):", self.water_var, "float")
+        self._create_input(env_section, "Temperatura (°C):", self.temp_var, "float", "temperature")
+        self._create_input(env_section, "Humedad (%):", self.humidity_var, "float", "humidity")
+        self._create_input(env_section, "Disponibilidad Agua (0-1):", self.water_var, "float", "water_availability")
         
         # Info box
         info_section = self._create_section(right_col, "Información")
@@ -190,13 +383,17 @@ class SimulationView(ttk.Frame):
         command: Optional[Callable] = None,
         dropdown_type: str = ''
     ):
-        """Create a labeled dropdown."""
+        """Create a labeled dropdown with optional tooltip."""
         row = ttk.Frame(parent, style='TFrame')
         row.pack(fill=tk.X, pady=(0, Spacing.PADDING_SMALL))
         
         # Label
         lbl = ttk.Label(row, text=label, style='TLabel', width=20)
         lbl.pack(side=tk.LEFT)
+        
+        # Add tooltip to label if available
+        if dropdown_type in PARAMETER_TOOLTIPS:
+            create_tooltip(lbl, PARAMETER_TOOLTIPS[dropdown_type], delay=300)
         
         # Dropdown
         combo = ttk.Combobox(
@@ -208,11 +405,15 @@ class SimulationView(ttk.Frame):
         )
         combo.pack(side=tk.LEFT, fill=tk.X, expand=True)
         
+        # Add tooltip to combo as well
+        if dropdown_type in PARAMETER_TOOLTIPS:
+            create_tooltip(combo, PARAMETER_TOOLTIPS[dropdown_type], delay=300)
+        
         if command:
             combo.bind('<<ComboboxSelected>>', lambda e: command())
             
-    def _create_input(self, parent, label: str, variable: tk.StringVar, input_type: str):
-        """Create a labeled input field."""
+    def _create_input(self, parent, label: str, variable: tk.StringVar, input_type: str, param_name: str = ''):
+        """Create a labeled input field with validation and tooltip."""
         row = ttk.Frame(parent, style='TFrame')
         row.pack(fill=tk.X, pady=(0, Spacing.PADDING_SMALL))
         
@@ -220,17 +421,78 @@ class SimulationView(ttk.Frame):
         lbl = ttk.Label(row, text=label, style='TLabel', width=20)
         lbl.pack(side=tk.LEFT)
         
+        # Add tooltip to label if parameter info available
+        if param_name and param_name in PARAMETER_TOOLTIPS:
+            create_tooltip(lbl, PARAMETER_TOOLTIPS[param_name], delay=300)
+        
         # Entry with validation
         entry = ttk.Entry(row, textvariable=variable, font=Fonts.BODY)
-        entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, Spacing.PADDING_SMALL))
         
-        # Add validation indicator
+        # Add tooltip to entry as well
+        if param_name and param_name in PARAMETER_TOOLTIPS:
+            create_tooltip(entry, PARAMETER_TOOLTIPS[param_name], delay=300)
+        
+        # Validation indicator label
+        validation_label = ttk.Label(row, text="", style='TLabel', width=3)
+        validation_label.pack(side=tk.LEFT)
+        
+        # Store reference for validation updates
+        if param_name:
+            self.validation_labels[param_name] = validation_label
+        
+        # Add keystroke validation
         if input_type == 'int':
             vcmd = (self.register(self._validate_int), '%P')
             entry.configure(validate='key', validatecommand=vcmd)
         elif input_type == 'float':
             vcmd = (self.register(self._validate_float), '%P')
             entry.configure(validate='key', validatecommand=vcmd)
+    
+    def _validate_field(self, param_name: str):
+        """Validate field value and update visual indicator."""
+        if param_name not in self.validation_labels:
+            return
+        
+        # Map param_name to variable
+        var_map = {
+            'duration': self.duration_var,
+            'initial_eggs': self.eggs_var,
+            'initial_larvae': self.larvae_var,
+            'initial_pupae': self.pupae_var,
+            'initial_adults': self.adults_var,
+            'temperature': self.temp_var,
+            'humidity': self.humidity_var,
+            'water_availability': self.water_var
+        }
+        
+        variable = var_map.get(param_name)
+        if not variable:
+            return
+        
+        value_str = variable.get()
+        if not value_str or value_str == "" or value_str == "-" or value_str == ".":
+            # Empty or partial input - neutral
+            self.validation_labels[param_name].config(text="", foreground=Colors.TEXT_SECONDARY)
+            return
+        
+        try:
+            value = float(value_str)
+            is_valid, error_msg = validate_parameter(param_name, value)
+            
+            if is_valid:
+                # Valid - show checkmark
+                self.validation_labels[param_name].config(text="✓", foreground=Colors.SUCCESS)
+                self.validation_labels[param_name].pack_configure()
+            else:
+                # Invalid - show warning
+                self.validation_labels[param_name].config(text="⚠", foreground=Colors.WARNING)
+                # Add tooltip with error message
+                create_tooltip(self.validation_labels[param_name], error_msg, delay=100)
+                
+        except ValueError:
+            # Parse error - show error
+            self.validation_labels[param_name].config(text="✗", foreground=Colors.ERROR)
             
     def _create_info_box(self, parent):
         """Create information box."""
