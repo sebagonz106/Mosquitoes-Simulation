@@ -73,6 +73,10 @@ class ResultsView(ttk.Frame):
         # Statistics cards
         self._create_statistics(container)
         
+        # PROLOG ANALYSIS: Add analysis section if available
+        if isinstance(self.result, PopulationResult) and hasattr(self.result, 'prolog_analysis') and self.result.prolog_analysis:
+            self._create_analysis_section(container)
+        
         # Charts
         self._create_charts(container)
         
@@ -472,6 +476,142 @@ class ResultsView(ttk.Frame):
                     "Éxito",
                     f"Checkpoint guardado correctamente:\n{checkpoint_path.name}"
                 )
-                
             except Exception as e:
                 messagebox.showerror("Error", f"Error guardando checkpoint:\n{str(e)}")
+    
+    def _create_analysis_section(self, parent):
+        """
+        Create analysis section showing Prolog inference results.
+        
+        Displays qualitative interpretations of simulation results
+        including population trends, extinction risk, and equilibrium analysis.
+        """
+        section = ttk.LabelFrame(
+            parent,
+            text="📊 Análisis de Resultados",
+            style='Card.TFrame',
+            padding=Spacing.PADDING_LARGE
+        )
+        section.pack(fill=tk.X, pady=(0, Spacing.PADDING_LARGE))
+        
+        analysis = self.result.prolog_analysis
+        
+        # Create grid for insights
+        insights = [
+            ("Tendencia Poblacional", 
+             self._format_trend(analysis['trend']),
+             self._get_trend_color(analysis['trend'])),
+            
+            ("Riesgo de Extinción", 
+             self._format_risk(analysis['extinction_risk']),
+             self._get_risk_color(analysis['extinction_risk'])),
+            
+            ("Equilibrio Ecológico", 
+             self._format_equilibrium(analysis),
+             Colors.SUCCESS if analysis['equilibrium_reached'] else Colors.TEXT_SECONDARY),
+        ]
+        
+        # Display insights
+        for i, (label, value, color) in enumerate(insights):
+            row_frame = ttk.Frame(section, style='TFrame')
+            row_frame.pack(fill=tk.X, pady=Spacing.PADDING_SMALL)
+            
+            # Label
+            lbl = ttk.Label(
+                row_frame,
+                text=f"{label}:",
+                style='TLabel',
+                font=Fonts.BODY_BOLD,
+                width=25,
+                anchor='w'
+            )
+            lbl.pack(side=tk.LEFT)
+            
+            # Value
+            val = ttk.Label(
+                row_frame,
+                text=value,
+                style='TLabel',
+                foreground=color
+            )
+            val.pack(side=tk.LEFT, padx=(Spacing.PADDING_SMALL, 0))
+        
+        # Peak interpretation (if available)
+        if 'peak_analysis' in analysis and analysis['peak_analysis']:
+            sep = ttk.Separator(section, orient='horizontal')
+            sep.pack(fill=tk.X, pady=Spacing.PADDING_MEDIUM)
+            
+            interpretation_label = ttk.Label(
+                section,
+                text="Interpretación del Pico:",
+                style='TLabel',
+                font=Fonts.BODY_BOLD
+            )
+            interpretation_label.pack(anchor=tk.W, pady=(0, Spacing.PADDING_SMALL))
+            
+            interpretation_text = tk.Text(
+                section,
+                height=3,
+                wrap=tk.WORD,
+                font=Fonts.BODY,
+                background=Colors.SURFACE,
+                foreground=Colors.TEXT_PRIMARY,
+                relief=tk.FLAT,
+                padx=Spacing.PADDING_SMALL,
+                pady=Spacing.PADDING_SMALL
+            )
+            interpretation_text.pack(fill=tk.X)
+            interpretation_text.insert('1.0', analysis['peak_analysis']['interpretation'])
+            interpretation_text.configure(state='disabled')  # Read-only
+    
+    def _format_trend(self, trend: str) -> str:
+        """Format trend value for display."""
+        mapping = {
+            'growing': '📈 Crecimiento',
+            'stable': '➡️ Estable',
+            'declining': '📉 Declive',
+            'initial': '🔵 Inicial',
+            'unknown': '❓ Desconocido'
+        }
+        return mapping.get(trend, trend)
+    
+    def _format_risk(self, risk: str) -> str:
+        """Format extinction risk for display."""
+        mapping = {
+            'low': '✅ Bajo',
+            'moderate': '⚠️ Moderado',
+            'high': '🔶 Alto',
+            'critical': '🔴 Crítico'
+        }
+        return mapping.get(risk, risk)
+    
+    def _format_equilibrium(self, analysis: dict) -> str:
+        """Format equilibrium status for display."""
+        if analysis['equilibrium_reached']:
+            first_day = analysis.get('equilibrium_day_first')
+            num_days = len(analysis['equilibrium_days'])
+            return f"✅ Alcanzado (día {first_day}, {num_days} días)"
+        else:
+            return "❌ No alcanzado"
+    
+    def _get_trend_color(self, trend: str) -> str:
+        """Get color for trend indicator."""
+        if trend == 'growing':
+            return Colors.SUCCESS
+        elif trend == 'declining':
+            return Colors.ERROR
+        elif trend == 'stable':
+            return Colors.PRIMARY
+        else:
+            return Colors.TEXT_SECONDARY
+    
+    def _get_risk_color(self, risk: str) -> str:
+        """Get color for risk indicator."""
+        if risk == 'low':
+            return Colors.SUCCESS
+        elif risk == 'moderate':
+            return Colors.WARNING
+        elif risk in ['high', 'critical']:
+            return Colors.ERROR
+        else:
+            return Colors.TEXT_SECONDARY

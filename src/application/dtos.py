@@ -121,6 +121,7 @@ class PopulationResult:
         adults: Temporal evolution of adult count
         total_population: Temporal evolution of total population
         statistics: Summary statistics (peak, extinction, means, etc.)
+        prolog_analysis: Optional Prolog analysis results (trend, risk, equilibrium)
     """
     
     species_id: str
@@ -131,13 +132,14 @@ class PopulationResult:
     adults: np.ndarray
     total_population: np.ndarray
     statistics: Dict
+    prolog_analysis: Optional[Dict] = None  # Analysis from Prolog inference engine
     
     def to_dict(self) -> Dict:
         """
         Convert to dictionary for serialization.
         Converts numpy arrays to lists for JSON compatibility.
         """
-        return {
+        result = {
             'species_id': self.species_id,
             'days': self.days.tolist(),
             'eggs': self.eggs.tolist(),
@@ -147,6 +149,11 @@ class PopulationResult:
             'total_population': self.total_population.tolist(),
             'statistics': self.statistics
         }
+        
+        if self.prolog_analysis:
+            result['prolog_analysis'] = self.prolog_analysis
+        
+        return result
     
     @classmethod
     def from_dict(cls, data: Dict) -> 'PopulationResult':

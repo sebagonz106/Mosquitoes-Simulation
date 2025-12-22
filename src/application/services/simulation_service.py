@@ -359,43 +359,28 @@ class SimulationService:
         """
         checkpoints = []
         
-        # Search for both .json files and files without extension (legacy)
-        patterns = ["*.json", "*"]
-        processed_files = set()
-        
-        for pattern in patterns:
-            for checkpoint_file in self.checkpoint_dir.glob(pattern):
-                # Skip if already processed or if it's a directory
-                if checkpoint_file in processed_files or checkpoint_file.is_dir():
+        for checkpoint_file in self.checkpoint_dir.glob("*.json"):
+            try:
+                with open(checkpoint_file, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                
+                # Apply filters
+                if species and data.get('metadata', {}).get('species') != species:
                     continue
                 
-                # Skip files with other extensions (not .json and not extensionless)
-                if checkpoint_file.suffix and checkpoint_file.suffix != '.json':
+                if simulation_type and data.get('simulation_type') != simulation_type:
                     continue
                 
-                processed_files.add(checkpoint_file)
-                
-                try:
-                    with open(checkpoint_file, 'r', encoding='utf-8') as f:
-                        data = json.load(f)
-                    
-                    # Apply filters
-                    if species and data.get('metadata', {}).get('species') != species:
-                        continue
-                    
-                    if simulation_type and data.get('simulation_type') != simulation_type:
-                        continue
-                    
-                    checkpoints.append({
-                        'filename': checkpoint_file.name,
-                        'path': str(checkpoint_file),
-                        'timestamp': data.get('timestamp'),
-                        'species': data.get('metadata', {}).get('species'),
-                        'duration': data.get('metadata', {}).get('duration'),
-                        'simulation_type': data.get('simulation_type')
-                    })
-                except Exception:
-                    continue  # Skip invalid files
+                checkpoints.append({
+                    'filename': checkpoint_file.name,
+                    'path': str(checkpoint_file),
+                    'timestamp': data.get('timestamp'),
+                    'species': data.get('metadata', {}).get('species'),
+                    'duration': data.get('metadata', {}).get('duration'),
+                    'simulation_type': data.get('simulation_type')
+                })
+            except Exception:
+                continue  # Skip invalid files
         
         # Sort by timestamp (newest first)
         checkpoints.sort(key=lambda x: x.get('timestamp', ''), reverse=True)

@@ -195,12 +195,72 @@ total_population(Species, Day, Total) :-
     findall(Count, population_state(Species, _, Count, Day), Counts),
     sum_list(Counts, Total).
 
-%% population_trend/3: Analiza tendencia poblacional comparando con día anterior.
+%% population_trend/3: Analiza tendencia poblacional usando ventana temporal amplia.
 %% @param Especie: Identificador de la especie
 %% @param Dia: Día actual
 %% @param Tendencia: growing (>5% aumento) | stable (variación <5%) | declining (>5% reducción)
-%% Compara población total entre días consecutivos con umbrales de sensibilidad.
+%% - Usa ventana de 10 días (o menos si simulación es mas corta)
+%% - Compara promedio de primeros 5 días vs últimos 5 días de la ventana
+%% - Detecta crecimiento exponencial que antes se clasificaba como "estable"
 population_trend(Species, Day, Trend) :-
+    Day >= 10,
+    % Obtener población actual y 10 días atrás
+    total_population(Species, Day, CurrentPop),
+    Day10Ago is Day - 9,
+    total_population(Species, Day10Ago, Pop10DaysAgo),
+    % Calcular promedio de primeros 5 días de la ventana (días -9 a -5)
+    Day9Ago is Day - 9,
+    Day8Ago is Day - 8,
+    Day7Ago is Day - 7,
+    Day6Ago is Day - 6,
+    Day5Ago is Day - 5,
+    total_population(Species, Day9Ago, P9),
+    total_population(Species, Day8Ago, P8),
+    total_population(Species, Day7Ago, P7),
+    total_population(Species, Day6Ago, P6),
+    total_population(Species, Day5Ago, P5),
+    EarlyAvg is (P9 + P8 + P7 + P6 + P5) / 5,
+    % Calcular promedio de últimos 5 días (días -4 a 0)
+    Day4Ago is Day - 4,
+    Day3Ago is Day - 3,
+    Day2Ago is Day - 2,
+    Day1Ago is Day - 1,
+    total_population(Species, Day4Ago, P4),
+    total_population(Species, Day3Ago, P3),
+    total_population(Species, Day2Ago, P2),
+    total_population(Species, Day1Ago, P1),
+    total_population(Species, Day, P0),
+    LateAvg is (P4 + P3 + P2 + P1 + P0) / 5,
+    % Clasificar tendencia
+    ( LateAvg > EarlyAvg * 1.05 -> Trend = growing
+    ; LateAvg < EarlyAvg * 0.95 -> Trend = declining
+    ; Trend = stable
+    ).
+
+%% Caso para simulaciones cortas (menos de 10 días): usa ventana reducida
+population_trend(Species, Day, Trend) :-
+    Day >= 5,
+    Day < 10,
+    % Comparar día actual con promedio de los 4 días anteriores
+    Day1 is Day - 1,
+    Day2 is Day - 2,
+    Day3 is Day - 3,
+    Day4 is Day - 4,
+    total_population(Species, Day, CurrentPop),
+    total_population(Species, Day1, P1),
+    total_population(Species, Day2, P2),
+    total_population(Species, Day3, P3),
+    total_population(Species, Day4, P4),
+    AvgPast is (P1 + P2 + P3 + P4) / 4,
+    ( CurrentPop > AvgPast * 1.05 -> Trend = growing
+    ; CurrentPop < AvgPast * 0.95 -> Trend = declining
+    ; Trend = stable
+    ).
+
+%% Caso para días muy iniciales (menos de 5 días): comparación simple
+population_trend(Species, Day, Trend) :-
+    Day > 0,
+    Day < 5,
     total_population(Species, Day, Pop1),
     PrevDay is Day - 1,
     (total_population(Species, PrevDay, Pop0) ->
@@ -211,6 +271,9 @@ population_trend(Species, Day, Trend) :-
     ;
         Trend = initial
     ).
+
+%% Caso inicial (día 0)
+population_trend(_, 0, initial).
 
 %% predator_prey_ratio/2: Calcula ratio de depredadores respecto a presas.
 %% @param Dia: Día de simulación
@@ -251,14 +314,92 @@ assess_biocontrol(_, _, _, requires_analysis).
 
 %% ecological_equilibrium/1: Determina si el sistema alcanzó equilibrio ecológico.
 %% @param Dia: Día de evaluación
-%% Condiciones: ambas especies estables, ratio depredador-presa en rango biológico (0.01-0.5).
-%% Representa estado de coexistencia sostenible (punto de equilibrio Lotka-Volterra).
+%% 
+%% Detecta automáticamente el tipo de simulación (una o dos especies) y aplica
+%% el criterio de equilibrio correspondiente.
+%%
+%% IMPLEMENTACIÓN: Prolog evaluará las reglas en orden. La primera que tenga
+%% éxito será la que se use (backtracking).
+
+%% ────────────────────────────────────────────────────────────────────────────
+%% CASO 1: Sistema depredador-presa (DOS especies coexistiendo)
+%% ────────────────────────────────────────────────────────────────────────────
+%% Modelado según ecuaciones de Lotka-Volterra.
+%% Condiciones para equilibrio ecológico:
+%% 1. Ambas especies deben tener población activa (> 0)
+%% 2. Ambas especies deben mostrar tendencia estable (variación < 5% diaria)
+%% 3. Ratio depredador/presa debe estar en rango biológicamente viable (0.01 - 0.5)
+%%
+%% Este caso se usará en futuras implementaciones con depredación.
 ecological_equilibrium(Day) :-
+    % Verificar que ambas especies tengan población activa
+    total_population(aedes_aegypti, Day, AedesPop),
+    total_population(toxorhynchites, Day, ToxoPop),
+    AedesPop > 0,
+    ToxoPop > 0,
+    % Verificar que ambas poblaciones estén estables
     population_trend(aedes_aegypti, Day, stable),
     population_trend(toxorhynchites, Day, stable),
+    % Verificar que el ratio depredador-presa esté en rango válido
     predator_prey_ratio(Day, Ratio),
-    Ratio > 0.01,
-    Ratio < 0.5.
+    Ratio > 0.01,   % Al menos 1% de depredadores respecto a presas
+    Ratio < 0.5.    % No más de 50% (evita sobredepredación)
+
+%% ────────────────────────────────────────────────────────────────────────────
+%% CASO 2: Simulación de UNA sola especie (sin interacción)
+%% ────────────────────────────────────────────────────────────────────────────
+%% Para simulaciones poblacionales estándar (actual implementación).
+%% Condiciones para equilibrio:
+%% 1. Solo una especie tiene población activa
+%% 2. La especie tiene tendencia estable (variación < 5% diaria)
+%% 3. La población está por encima del doble del MVP (población saludable)
+%%
+%% Detecta automáticamente cuál especie se está simulando (Aedes o Toxorhynchites).
+ecological_equilibrium(Day) :-
+    % Detectar cuál especie está siendo simulada
+    detect_simulated_species(Day, Species),
+    % Verificar equilibrio para esa especie
+    single_species_equilibrium(Species, Day).
+
+%% detect_simulated_species/2: Detecta automáticamente qué especie se está simulando.
+%% @param Dia: Día de simulación
+%% @param Especie: Especie detectada (aedes_aegypti o toxorhynchites)
+%% 
+%% Retorna la especie que tiene población > 0 mientras la otra tiene 0 o no existe.
+detect_simulated_species(Day, aedes_aegypti) :-
+    total_population(aedes_aegypti, Day, AedesPop),
+    AedesPop > 0,
+    % Verificar que Toxo no tenga población o no exista
+    (
+        \+ total_population(toxorhynchites, Day, _)
+    ;
+        (total_population(toxorhynchites, Day, ToxoPop), ToxoPop = 0)
+    ).
+
+detect_simulated_species(Day, toxorhynchites) :-
+    total_population(toxorhynchites, Day, ToxoPop),
+    ToxoPop > 0,
+    % Verificar que Aedes no tenga población o no exista
+    (
+        \+ total_population(aedes_aegypti, Day, _)
+    ;
+        (total_population(aedes_aegypti, Day, AedesPop), AedesPop = 0)
+    ).
+
+%% single_species_equilibrium/2: Verifica equilibrio para una sola especie.
+%% @param Especie: Identificador de la especie
+%% @param Dia: Día de evaluación
+%%
+%% Criterios:
+%% - Tendencia estable (variación diaria < 5%)
+%% - Población > 2 × MVP (población saludable y sostenible)
+single_species_equilibrium(Species, Day) :-
+    % Verificar tendencia estable
+    population_trend(Species, Day, stable),
+    % Verificar población saludable
+    total_population(Species, Day, Pop),
+    minimum_viable_population(Species, MVP),
+    Pop > MVP * 2.  % Población debe ser al menos el doble del MVP
 
 %% extinction_risk/3: Analiza riesgo de extinción según MVP (Minimum Viable Population).
 %% @param Especie: Identificador de la especie

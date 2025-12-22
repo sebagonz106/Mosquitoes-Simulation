@@ -7,6 +7,7 @@ Service for executing population-based simulations.
 
 from typing import Dict, List, Optional
 import numpy as np
+import logging
 
 from domain.entities.population import Population
 from domain.entities.species import Species
@@ -14,6 +15,9 @@ from domain.models.population_model import PopulationModel
 from domain.models.environment_model import EnvironmentModel
 from application.dtos import SimulationConfig, PopulationResult
 from application.helpers import get_config_manager
+
+# Configure logging
+logger = logging.getLogger(__name__)
 
 
 class PopulationService:
@@ -194,6 +198,19 @@ class PopulationService:
             statistics=statistics
         )
         
+        # PROLOG ANALYSIS: Analyze results with Prolog inference engine
+        try:
+            prolog_analysis = PopulationService._analyze_with_prolog(
+                result, config, time_array, 
+                eggs_trajectory, larvae_trajectory, 
+                pupae_trajectory, adults_trajectory
+            )
+            result.prolog_analysis = prolog_analysis
+            logger.info(f"Prolog analysis completed: {prolog_analysis.get('trend')}")
+        except Exception as e:
+            logger.warning(f"Prolog analysis failed (simulation continues): {e}")
+            result.prolog_analysis = None
+        
         return result
     
     @staticmethod
@@ -256,3 +273,195 @@ class PopulationService:
             }
         except Exception:
             return None
+    
+    @staticmethod
+    def _analyze_with_prolog(
+        result: PopulationResult,
+        config: SimulationConfig,
+        time_array: np.ndarray,
+        eggs_trajectory: np.ndarray,
+        larvae_trajectory: np.ndarray,
+        pupae_trajectory: np.ndarray,
+        adults_trajectory: np.ndarray
+    ) -> Dict:
+        """
+        Analyze simulation results using Prolog inference engine.
+        
+        This method:
+        1. Initializes PrologBridge with configuration
+        2. Injects simulation results as Prolog facts
+        3. Executes declarative queries for qualitative analysis
+        4. Returns interpretation of results
+        
+        Args:
+            result: PopulationResult with simulation data
+            config: SimulationConfig used for simulation
+            time_array: Array of day numbers
+            eggs_trajectory: Eggs population over time
+            larvae_trajectory: Larvae population over time
+            pupae_trajectory: Pupae population over time
+            adults_trajectory: Adults population over time
+        
+        Returns:
+            Dictionary with Prolog analysis results:
+            - trend: Population trend ('growing', 'stable', 'declining')
+            - extinction_risk: Risk level ('low', 'moderate', 'high', 'critical')
+            - equilibrium_days: List of days where equilibrium was reached
+            - peak_analysis: Interpretation of peak day
+        
+        Raises:
+            Exception: If Prolog analysis fails
+        """
+        from infrastructure.prolog_bridge import PrologBridge
+        
+        logger.info("Starting Prolog analysis...")
+        
+        # 1. Initialize Prolog Bridge
+        config_manager = get_config_manager()
+        prolog = PrologBridge(config_manager)
+        prolog.inject_parameters()
+        
+        # 2. Inject simulation results into Prolog
+        logger.debug("Injecting simulation data into Prolog...")
+        
+        for day in range(len(time_array)):
+            # Initialize population states for this day
+            prolog.initialize_population(
+                config.species_id, 'egg', 
+                int(eggs_trajectory[day]), day
+            )
+            prolog.initialize_population(
+                config.species_id, 'larva_l1', 
+                int(larvae_trajectory[day] * 0.25), day  # Approximate L1-L4 distribution
+            )
+            prolog.initialize_population(
+                config.species_id, 'larva_l2', 
+                int(larvae_trajectory[day] * 0.25), day
+            )
+            prolog.initialize_population(
+                config.species_id, 'larva_l3', 
+                int(larvae_trajectory[day] * 0.25), day
+            )
+            prolog.initialize_population(
+                config.species_id, 'larva_l4', 
+                int(larvae_trajectory[day] * 0.25), day
+            )
+            prolog.initialize_population(
+                config.species_id, 'pupa', 
+                int(pupae_trajectory[day]), day
+            )
+            prolog.initialize_population(
+                config.species_id, 'adult_female', 
+                int(adults_trajectory[day] * 0.5), day  # Assume 50/50 sex ratio
+            )
+            prolog.initialize_population(
+                config.species_id, 'adult_male', 
+                int(adults_trajectory[day] * 0.5), day
+            )
+            
+            # Set environmental state
+            prolog.set_environment_state(
+                day, 
+                config.temperature if config.temperature else 27.0,
+                config.humidity if config.humidity else 75.0
+            )
+        
+        # 3. Execute Prolog queries
+        logger.debug("Executing Prolog queries...")
+        
+        final_day = len(time_array) - 1
+        
+        # Query: Population trend
+        trend = prolog.get_population_trend(config.species_id, final_day)
+        
+        # Query: Extinction risk
+        extinction_risk = prolog.get_extinction_risk(config.species_id, final_day)
+        
+        # Query: Equilibrium days (check each day)
+        equilibrium_days = []
+        for day in range(10, final_day):  # Start from day 10 to allow stabilization
+            if prolog.check_ecological_equilibrium(day):
+                equilibrium_days.append(day)
+        
+        # Peak analysis
+        peak_day = result.statistics['peak_day']
+        peak_value = result.statistics['peak_population']
+        
+        if peak_day > 0:
+            trend_before_peak = prolog.get_population_trend(
+                config.species_id, max(0, peak_day - 1)
+            )
+        else:
+            trend_before_peak = 'initial'
+        
+        if peak_day < final_day:
+            trend_after_peak = prolog.get_population_trend(
+                config.species_id, min(final_day, peak_day + 1)
+            )
+        else:
+            trend_after_peak = 'stable'
+        
+        # Interpret peak
+        peak_interpretation = PopulationService._interpret_peak(
+            peak_day, peak_value, trend_before_peak, trend_after_peak
+        )
+        
+        # 4. Build analysis result
+        analysis = {
+            'trend': trend,
+            'extinction_risk': extinction_risk,
+            'equilibrium_days': equilibrium_days,
+            'equilibrium_reached': len(equilibrium_days) > 0,
+            'equilibrium_day_first': equilibrium_days[0] if equilibrium_days else None,
+            'peak_analysis': {
+                'day': peak_day,
+                'value': peak_value,
+                'trend_before': trend_before_peak,
+                'trend_after': trend_after_peak,
+                'interpretation': peak_interpretation
+            }
+        }
+        
+        logger.info(f"Prolog analysis complete: trend={trend}, risk={extinction_risk}")
+        
+        return analysis
+    
+    @staticmethod
+    def _interpret_peak(
+        peak_day: int, 
+        peak_value: float, 
+        trend_before: str, 
+        trend_after: str
+    ) -> str:
+        """
+        Generate natural language interpretation of population peak.
+        
+        Args:
+            peak_day: Day when peak occurred
+            peak_value: Population value at peak
+            trend_before: Trend before peak
+            trend_after: Trend after peak
+        
+        Returns:
+            Natural language interpretation string
+        """
+        if trend_before == 'growing' and trend_after == 'declining':
+            return (f"Pico poblacional alcanzado en día {peak_day} con {int(peak_value)} individuos. "
+                   f"La población creció hasta este punto y luego comenzó a declinar, "
+                   f"posiblemente debido a limitaciones ambientales o capacidad de carga.")
+        
+        elif trend_before == 'growing' and trend_after == 'stable':
+            return (f"Pico poblacional de {int(peak_value)} individuos en día {peak_day}, "
+                   f"seguido de estabilización. Indica que la población alcanzó "
+                   f"equilibrio cerca de la capacidad de carga del ambiente.")
+        
+        elif trend_before == 'stable' and trend_after == 'stable':
+            return (f"Población fluctuó alrededor de {int(peak_value)} individuos cerca del día {peak_day}, "
+                   f"manteniendo equilibrio estable durante la simulación.")
+        
+        elif trend_after == 'growing':
+            return (f"Población alcanzó {int(peak_value)} individuos en día {peak_day} "
+                   f"y continúa en crecimiento, indicando condiciones favorables persistentes.")
+        
+        else:
+            return (f"Pico de {int(peak_value)} individuos observado en día {peak_day}.")
