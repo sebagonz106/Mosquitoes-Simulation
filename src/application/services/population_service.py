@@ -13,8 +13,9 @@ from domain.entities.population import Population
 from domain.entities.species import Species
 from domain.models.population_model import PopulationModel
 from domain.models.environment_model import EnvironmentModel
-from application.dtos import SimulationConfig, PopulationResult
+from application.dtos import SimulationConfig, PopulationResult, PredatorPreyConfig
 from application.helpers import get_config_manager
+from application.services.predator_prey_service import PredatorPreyService
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -28,9 +29,12 @@ class PopulationService:
     simulations using the domain layer entities and converting results
     to application-layer DTOs.
     
+    Also provides access to predator-prey simulations via PredatorPreyService.
+    
     Methods:
         create_population: Create a population from config
-        simulate: Execute simulation and return results
+        simulate: Execute single-species simulation
+        simulate_predator_prey: Execute predator-prey simulation (Etapa 2)
     """
     
     @staticmethod
@@ -476,4 +480,68 @@ class PopulationService:
                    f"y continúa en crecimiento, indicando condiciones favorables persistentes.")
         
         else:
-            return (f"Pico de {int(peak_value)} individuos observado en día {peak_day}.")
+            return (f"Pico de {int(peak_value)} individuos observado en día {peak_day}.")    
+    # =========================================================================
+    # PREDATOR-PREY INTEGRATION (Etapa 2)
+    # =========================================================================
+    
+    @staticmethod
+    def simulate_predator_prey(config: PredatorPreyConfig, use_prolog: bool = True):
+        """
+        Execute predator-prey simulation.
+        
+        Delegates to PredatorPreyService for full predator-prey dynamics.
+        
+        Args:
+            config: PredatorPreyConfig with prey and predator parameters
+            use_prolog: Whether to use Prolog for dynamic rate inference
+            
+        Returns:
+            PredatorPreyResult from PredatorPreyService.simulate()
+            
+        Example:
+            >>> config = PredatorPreyConfig(
+            ...     species_id='aedes_aegypti',
+            ...     predator_species_id='toxorhynchites',
+            ...     duration_days=90,
+            ...     initial_adults=100,
+            ...     predator_initial_larvae=20
+            ... )
+            >>> result = PopulationService.simulate_predator_prey(config)
+            >>> print(result.get_predation_impact())
+        """
+        return PredatorPreyService.simulate(config, use_prolog)
+    
+    @staticmethod
+    def compare_predation_effect(config: PredatorPreyConfig, use_prolog: bool = True):
+        """
+        Compare prey population with and without predators.
+        
+        Runs two simulations (one with predators, one without) and returns
+        comparison metrics showing predation impact.
+        
+        Args:
+            config: PredatorPreyConfig including predator species and populations
+            use_prolog: Whether to use Prolog for rate inference
+            
+        Returns:
+            Dictionary with comparison metrics showing predation impact
+            
+        Example:
+            >>> comparison = PopulationService.compare_predation_effect(config)
+            >>> print(f"Predation reduced prey by {comparison['predation_impact']['reduction_percent']}%")
+        """
+        return PredatorPreyService.compare_with_without_predators(config, use_prolog)
+    
+    @staticmethod
+    def get_system_equilibrium(predator_prey_result):
+        """
+        Analyze predator-prey system equilibrium.
+        
+        Args:
+            predator_prey_result: PredatorPreyResult from simulate_predator_prey
+            
+        Returns:
+            Dictionary with equilibrium status and stability metrics
+        """
+        return PredatorPreyService.get_equilibrium_status(predator_prey_result)

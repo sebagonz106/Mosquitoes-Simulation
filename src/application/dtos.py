@@ -485,3 +485,184 @@ class HybridResult:
         summary.update(self.comparison_data)
         
         return summary
+
+# ===================================================================
+# PREDATOR-PREY DYNAMICS DTOs
+# ===================================================================
+
+@dataclass
+class PredatorPreyConfig(SimulationConfig):
+    """
+    Configuration for predator-prey simulations.
+    
+    Extends SimulationConfig with predator population parameters.
+    
+    Attributes:
+        prey_species_id: Prey species (typically 'aedes_aegypti')
+        predator_species_id: Predator species (typically 'toxorhynchites')
+        predator_initial_eggs: Initial predator egg count
+        predator_initial_larvae: Initial predator larvae count
+        predator_initial_pupae: Initial predator pupae count
+        predator_initial_adults: Initial predator adult count
+    """
+    predator_species_id: Optional[str] = None
+    predator_initial_eggs: int = 0
+    predator_initial_larvae: int = 0
+    predator_initial_pupae: int = 0
+    predator_initial_adults: int = 0
+    
+    def validate(self) -> tuple[bool, List[str]]:
+        """Validate predator-prey configuration."""
+        # First validate base config
+        is_valid, errors = super().validate()
+        
+        # Validate predator parameters if provided
+        if self.predator_species_id is not None:
+            if self.predator_initial_eggs < 0:
+                errors.append("predator_initial_eggs cannot be negative")
+            if self.predator_initial_larvae < 0:
+                errors.append("predator_initial_larvae cannot be negative")
+            if self.predator_initial_pupae < 0:
+                errors.append("predator_initial_pupae cannot be negative")
+            if self.predator_initial_adults < 0:
+                errors.append("predator_initial_adults cannot be negative")
+        
+        return len(errors) == 0, errors
+
+
+@dataclass
+class PredatorPreyTimeSeries:
+    """
+    Time series data for prey and predator populations.
+    
+    Attributes:
+        day: Simulation day
+        prey_eggs: Prey egg count
+        prey_larvae: Prey larvae count
+        prey_pupae: Prey pupae count
+        prey_adults: Prey adult count
+        prey_total: Total prey population
+        predator_eggs: Predator egg count
+        predator_larvae: Predator larvae count
+        predator_pupae: Predator pupae count
+        predator_adults: Predator adult count
+        predator_total: Total predator population
+        temperature: Temperature at this day
+        humidity: Humidity at this day
+        predator_density: Predator density (predators per prey)
+    """
+    day: int
+    prey_eggs: int
+    prey_larvae: int
+    prey_pupae: int
+    prey_adults: int
+    prey_total: int
+    predator_eggs: int
+    predator_larvae: int
+    predator_pupae: int
+    predator_adults: int
+    predator_total: int
+    temperature: float
+    humidity: float
+    predator_density: float
+
+
+@dataclass
+class PredatorPreyResult:
+    """
+    Result of a predator-prey simulation.
+    
+    Attributes:
+        prey_species_id: Prey species identifier
+        predator_species_id: Predator species identifier
+        duration_days: Total simulation days
+        prey_trajectory: List of time series data for prey
+        predator_trajectory: List of time series data for predator
+        statistics: Summary statistics
+        peak_day: Day of peak prey population
+        extinction_day: Day when predator or prey extinct (if any)
+        success: Whether simulation completed successfully
+    """
+    prey_species_id: str
+    predator_species_id: str
+    duration_days: int
+    prey_trajectory: List[Dict]
+    predator_trajectory: List[np.ndarray]
+    statistics: Dict[str, float]
+    peak_day: Optional[int] = None
+    extinction_day: Optional[int] = None
+    success: bool = True
+    
+    def to_dict(self) -> Dict:
+        """Convert to dictionary, handling numpy arrays."""
+        return {
+            'prey_species_id': self.prey_species_id,
+            'predator_species_id': self.predator_species_id,
+            'duration_days': self.duration_days,
+            'prey_trajectory': self.prey_trajectory,
+            'predator_trajectory': [p.tolist() if isinstance(p, np.ndarray) else p 
+                                   for p in self.predator_trajectory],
+            'statistics': self.statistics,
+            'peak_day': self.peak_day,
+            'extinction_day': self.extinction_day,
+            'success': self.success
+        }
+    
+    @classmethod
+    def from_dict(cls, data: Dict) -> 'PredatorPreyResult':
+        """Create from dictionary."""
+        return cls(
+            prey_species_id=data['prey_species_id'],
+            predator_species_id=data['predator_species_id'],
+            duration_days=data['duration_days'],
+            prey_trajectory=data['prey_trajectory'],
+            predator_trajectory=[np.array(p) if isinstance(p, list) else p 
+                               for p in data['predator_trajectory']],
+            statistics=data['statistics'],
+            peak_day=data.get('peak_day'),
+            extinction_day=data.get('extinction_day'),
+            success=data.get('success', True)
+        )
+    
+    def get_final_populations(self) -> Dict[str, int | str]:
+        """Get final population counts for both species."""
+        if not self.prey_trajectory:
+            prey_final = 0
+        else:
+            prey_final = self.prey_trajectory[-1].get('total', 0)
+        
+        if not self.predator_trajectory or len(self.predator_trajectory) == 0:
+            predator_final = 0
+        else:
+            predator_vec = self.predator_trajectory[-1]
+            predator_final = int(np.sum(predator_vec)) if isinstance(predator_vec, np.ndarray) else 0
+        
+        return {
+            'prey_final': int(prey_final),
+            'predator_final': predator_final,
+            'prey_species': self.prey_species_id,
+            'predator_species': self.predator_species_id
+        }
+    
+    def get_predation_impact(self) -> Dict:
+        """
+        Analyze predation impact on prey populations.
+        
+        Returns:
+            Dictionary with impact metrics
+        """
+        if len(self.prey_trajectory) < 2:
+            return {'impact': 'insufficient_data'}
+        
+        first_prey = self.prey_trajectory[0]['total']
+        final_prey = self.prey_trajectory[-1]['total']
+        peak_prey = max(p['total'] for p in self.prey_trajectory)
+        
+        return {
+            'initial_prey': int(first_prey),
+            'final_prey': int(final_prey),
+            'peak_prey': int(peak_prey),
+            'prey_reduction_percent': round((1 - final_prey / first_prey) * 100, 2) if first_prey > 0 else 0,
+            'peak_day': self.peak_day,
+            'extinction_occurred': self.extinction_day is not None
+        }

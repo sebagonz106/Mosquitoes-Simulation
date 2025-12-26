@@ -8,16 +8,20 @@ This layer coordinates domain entities and models to execute
 complete simulation workflows.
 """
 
-from application.dtos import (
+from .dtos import (
     SimulationConfig,
     PopulationResult,
     AgentResult,
-    ComparisonResult
+    ComparisonResult,
+    PredatorPreyConfig,
+    PredatorPreyResult
 )
 
 __all__ = [
     'SimulationConfig',
     'PopulationResult',
     'AgentResult',
-    'ComparisonResult'
+    'ComparisonResult',
+    'PredatorPreyConfig',
+    'PredatorPreyResult'
 ]
