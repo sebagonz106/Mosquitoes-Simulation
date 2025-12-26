@@ -219,27 +219,43 @@ class PopulationModel:
         environment_model: EnvironmentModel,
         prolog_bridge: Optional[PrologBridge] = None,
         stochastic_mode: bool = True,
-        seed: Optional[int] = None
+        seed: Optional[int] = None,
+        predator_config: Optional[SpeciesConfig] = None,
+        predator_populations: Optional[Dict[str, int]] = None
     ):
         """
-        Initialize population model.
+        Initialize population model with optional predator-prey dynamics.
         
         Args:
-            species_config: Species configuration
+            species_config: Species configuration (prey/vector)
             environment_model: Environmental model
             prolog_bridge: Optional Prolog bridge for ecological inference
             stochastic_mode: Enable stochastic variation
             seed: Random seed for reproducibility
+            predator_config: Optional predator species configuration
+            predator_populations: Optional initial predator populations by stage
         
-        Example:
-            >>> from infrastructure.config import load_default_config
-            >>> from infrastructure.prolog_bridge import create_prolog_bridge
+        Note:
+            Backward compatible: If predator_config is None (default), model
+            behaves exactly as single-species simulation.
+        
+        Example (single species):
             >>> config = load_default_config()
             >>> aegypti_config = config.get_species('aedes_aegypti')
             >>> env = EnvironmentModel(config.environment, days=365)
             >>> model = PopulationModel(aegypti_config, env, seed=42)
-            >>> model.species_name
-            'aedes_aegypti'
+            >>> model.has_predators
+            False
+        
+        Example (with predators):
+            >>> toxo_config = config.get_species('toxorhynchites')
+            >>> model = PopulationModel(
+            ...     aegypti_config, env, 
+            ...     predator_config=toxo_config,
+            ...     predator_populations={'larva_l3': 5, 'larva_l4': 5}
+            ... )
+            >>> model.has_predators
+            True
         """
         self.species_config = species_config
         self.species_name = species_config.species_id
@@ -248,7 +264,7 @@ class PopulationModel:
         self.stochastic_mode = stochastic_mode
         self.seed = seed
         
-        # Initialize Leslie matrix
+        # Initialize Leslie matrix for primary species (vector/prey)
         self.leslie_matrix = create_leslie_matrix_from_config(species_config)
         
         # Initialize stochastic generators
@@ -260,9 +276,24 @@ class PopulationModel:
             self.stochastic = StochasticVariation(seed=0)
             self.demographic = DemographicStochasticity(seed=0)
         
+        # Predator-prey dynamics (optional, backward compatible)
+        self.has_predators = predator_config is not None
+        if self.has_predators:
+            self.predator_config = predator_config
+            self.predator_species_name = predator_config.species_id
+            self.predator_matrix = create_leslie_matrix_from_config(predator_config)
+            self.predator_state: Optional[np.ndarray] = None
+            
+            # Initialize predator populations if provided
+            if predator_populations:
+                self.initial_predator_populations = predator_populations
+            else:
+                self.initial_predator_populations = {}
+        
         # Trajectory storage
         self.current_state: Optional[PopulationState] = None
         self.trajectory: List[PopulationState] = []
+        self.predator_trajectory: List[np.ndarray] = [] if self.has_predators else []
     
     def initialize(
         self,
@@ -276,12 +307,16 @@ class PopulationModel:
         
         Args:
             initial_eggs: Initial number of eggs
-            initial_larvae: Initial number of larvae
+            initial_larvae: Initial number of larvae (prey/vector species)
             initial_pupae: Initial number of pupae
             initial_adults: Initial number of adults
         
         Returns:
             Initial PopulationState
+        
+        Note:
+            If model has predators, their populations are initialized from
+            self.initial_predator_populations (set in constructor).
         
         Example:
             >>> from infrastructure.config import load_default_config
@@ -308,6 +343,14 @@ class PopulationModel:
         )
         
         self.trajectory = [self.current_state]
+        
+        # Initialize predator populations if model has predators
+        if self.has_predators:
+            self.predator_state = self._initialize_predator_vector(
+                self.initial_predator_populations
+            )
+            self.predator_trajectory = [self.predator_state.copy()]
+        
         return self.current_state
     
     def step(self, day: int) -> PopulationState:
@@ -347,6 +390,11 @@ class PopulationModel:
                 day, conditions.temperature, conditions.humidity
             )
         
+        # Apply predation effects if predators are present
+        if self.has_predators:
+            predator_density = self._calculate_predator_density()
+            self._apply_predation_from_prolog(predator_density, conditions.temperature)
+        
         # Get current population vector
         current_vector = self.current_state.to_vector()
         
@@ -385,6 +433,14 @@ class PopulationModel:
         # Update current state and trajectory
         self.current_state = new_state
         self.trajectory.append(new_state)
+        
+        # Project predator population if present
+        if self.has_predators:
+            prey_availability = self._calculate_prey_availability()
+            self._adjust_predator_reproduction(prey_availability)
+            self.predator_state = self.predator_matrix.matrix @ self.predator_state
+            self.predator_state = np.maximum(self.predator_state, 0)
+            self.predator_trajectory.append(self.predator_state.copy())
         
         return new_state
     
@@ -739,12 +795,186 @@ class PopulationModel:
         """Reset model to initial state."""
         self.current_state = None
         self.trajectory = []
+        if self.has_predators:
+            self.predator_state = None
+            self.predator_trajectory = []
+    
+    # =========================================================================
+    # PREDATOR-PREY DYNAMICS (Etapa 1: Backend Core)
+    # =========================================================================
+    
+    def _initialize_predator_vector(self, populations: Dict[str, int]) -> np.ndarray:
+        """
+        Initialize predator population vector from stage dictionary.
+        
+        Args:
+            populations: Dict mapping stage names to counts
+                         (e.g., {'larva_l3': 10, 'larva_l4': 15, 'adult': 5})
+        
+        Returns:
+            Predator vector [eggs, larvae, pupae, adults]
+        
+        Note:
+            Stage names map to vector indices based on stage type.
+            Unknown stages are ignored.
+        """
+        vector = np.zeros(4)
+        
+        # Map stage names to vector indices
+        stage_map = {
+            'egg': 0,
+            'larva': 1, 'larva_l1': 1, 'larva_l2': 1, 
+            'larva_l3': 1, 'larva_l4': 1,  # All larva types → index 1
+            'pupa': 2,
+            'adult': 3
+        }
+        
+        for stage_name, count in populations.items():
+            idx = stage_map.get(stage_name)
+            if idx is not None:
+                vector[idx] += count
+        
+        return vector
+    
+    def _calculate_predator_density(self) -> float:
+        """
+        Calculate effective predator density (predatory larvae per unit).
+        
+        Returns:
+            Predator density (predators / (prey larvae + 1))
+        
+        Note:
+            Only L3-L4 larvae of predator species are predatory.
+            Density is normalized by prey larvae to get predation pressure.
+            Add 1 to denominator to avoid division by zero.
+        """
+        if not self.has_predators or self.predator_state is None:
+            return 0.0
+        
+        # Total predatory larvae (index 1 in vector)
+        predator_larvae = self.predator_state[1]
+        
+        # Prey larvae (current state)
+        prey_larvae = self.current_state.larvae
+        
+        # Density: predators per prey (avoid division by zero)
+        density = predator_larvae / (prey_larvae + 1)
+        
+        return float(density)
+    
+    def _apply_predation_from_prolog(self, predator_density: float, temperature: float):
+        """
+        Adjust prey survival rates based on predation using Prolog inference.
+        
+        Consults Prolog predation_rate/4 predicate to get adjusted survival rates
+        considering predator density and environmental conditions.
+        
+        Args:
+            predator_density: Ratio of predators to prey
+            temperature: Current temperature (°C)
+        
+        Side effects:
+            Modifies self.leslie_matrix survival rates for egg and larva stages
+        
+        Note:
+            Falls back to simple multiplicative reduction if Prolog unavailable.
+            Predation primarily affects larvae (instars L1-L4 are vulnerable).
+        """
+        if not self.prolog_bridge:
+            # Simple fallback: reduce larval survival by density factor
+            # Higher density → lower survival
+            reduction_factor = 1.0 / (1.0 + predator_density)
+            current_larva_survival = self.leslie_matrix.matrix[2, 1]
+            self.leslie_matrix.matrix[2, 1] = current_larva_survival * reduction_factor
+            return
+        
+        # Query Prolog for predation-adjusted rates
+        # Predation affects larvae most (stages larva_l1 to larva_l4)
+        # Use current matrix rate as base (already environmentally adjusted)
+        base_larva_survival = self.leslie_matrix.matrix[2, 1]
+        
+        try:
+            adjusted_rate = self.prolog_bridge.get_predation_rate(
+                stage='larva',
+                predator_density=predator_density,
+                base_rate=base_larva_survival,
+                temperature=temperature
+            )
+            
+            # Apply adjusted rate to Leslie matrix
+            self.leslie_matrix.matrix[2, 1] = adjusted_rate
+            
+        except Exception as e:
+            # Fallback to simple reduction on Prolog error
+            reduction_factor = 1.0 / (1.0 + predator_density)
+            current_larva_survival = self.leslie_matrix.matrix[2, 1]
+            self.leslie_matrix.matrix[2, 1] = current_larva_survival * reduction_factor
+    
+    def _calculate_prey_availability(self) -> float:
+        """
+        Calculate prey abundance for predator reproduction dynamics.
+        
+        Returns:
+            Prey-to-predator ratio (prey larvae / predator larvae)
+        
+        Note:
+            High ratio → abundant prey → higher predator fecundity
+            Low ratio → scarce prey → lower predator fecundity
+        """
+        if not self.has_predators or self.predator_state is None:
+            return 0.0
+        
+        prey_larvae = self.current_state.larvae
+        predator_larvae = self.predator_state[1]
+        
+        # Avoid division by zero
+        if predator_larvae < 1:
+            return float(prey_larvae)  # Unlimited prey per predator
+        
+        ratio = prey_larvae / predator_larvae
+        return float(ratio)
+    
+    def _adjust_predator_reproduction(self, prey_ratio: float):
+        """
+        Adjust predator fecundity based on prey availability.
+        
+        Args:
+            prey_ratio: Ratio of prey to predators
+        
+        Side effects:
+            Modifies self.predator_matrix fecundity (row 0, col 3)
+        
+        Note:
+            Functional response: fecundity increases with prey up to saturation.
+            Uses Type II functional response: f(x) = ax / (1 + ahx)
+            where a=attack rate, h=handling time, x=prey density
+        """
+        # Base fecundity from predator config (max eggs per batch)
+        base_fecundity = self.predator_config.reproduction.eggs_per_batch_max
+        
+        # Type II functional response parameters
+        attack_rate = 0.8      # Rate at which predators find prey
+        handling_time = 0.5    # Time to consume one prey
+        
+        # Calculate functional response (saturating at base_fecundity)
+        numerator = attack_rate * prey_ratio
+        denominator = 1.0 + attack_rate * handling_time * prey_ratio
+        response = numerator / denominator  # Value between 0 and 1/handling_time
+        
+        # Fecundity scales with feeding success (0 to base_fecundity)
+        # Normalize response to [0, 1] range
+        normalized_response = min(response / (1.0 / handling_time), 1.0)
+        adjusted_fecundity = base_fecundity * normalized_response
+        
+        # Update predator matrix (adults produce eggs)
+        self.predator_matrix.matrix[0, 3] = adjusted_fecundity
     
     def __repr__(self) -> str:
         """String representation."""
         eigen_result = self.leslie_matrix.eigenanalysis()
+        pred_info = f", predators={self.predator_species_name}" if self.has_predators else ""
         return (
             f"PopulationModel(species='{self.species_name}', "
             f"λ₁={eigen_result.lambda_1:.3f}, "
-            f"stochastic={self.stochastic_mode})"
+            f"stochastic={self.stochastic_mode}{pred_info})"
         )

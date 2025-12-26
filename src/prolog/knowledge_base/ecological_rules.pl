@@ -41,28 +41,82 @@ can_predate(Predator, Prey, PredatorStage, PreyStage) :-
 %% @param Especie: Especie a evaluar
 %% @param Factor: Factor de ajuste [0.5-1.0]
 %% Implementa curva de respuesta térmica específica por especie.
+%% temperature_adjustment para Aedes aegypti (óptimo 27°C, límites 10-40°C)
 temperature_adjustment(Temp, aedes_aegypti, Factor) :-
     Temp >= 20, Temp =< 35,
     OptimalTemp = 27,
     Diff is abs(Temp - OptimalTemp),
     Factor is max(0.5, 1 - (Diff * 0.03)).
 
+%% Temperatura baja (10-20°C)
+temperature_adjustment(Temp, aedes_aegypti, Factor) :-
+    Temp >= 10, Temp < 20,
+    Factor is max(0.05, 0.3 - (20 - Temp) * 0.04).  % Decreases rapidly below 20°C
+
+%% Temperatura muy baja (<10°C)
+temperature_adjustment(Temp, aedes_aegypti, Factor) :-
+    Temp < 10,
+    Factor is 0.01.  % Practically extinct
+
+%% Temperatura alta (>35°C)
+temperature_adjustment(Temp, aedes_aegypti, Factor) :-
+    Temp > 35, Temp =< 40,
+    Factor is max(0.05, 0.6 - (Temp - 35) * 0.11).  % Lethal threshold at ~40°C
+
+%% Temperatura letal (>40°C)
+temperature_adjustment(Temp, aedes_aegypti, Factor) :-
+    Temp > 40,
+    Factor is 0.01.  % Practically extinct
+
+%% temperature_adjustment para Toxorhynchites (óptimo 28°C, límites 8-42°C)
 temperature_adjustment(Temp, toxorhynchites, Factor) :-
     Temp >= 18, Temp =< 35,
     OptimalTemp = 28,
     Diff is abs(Temp - OptimalTemp),
     Factor is max(0.5, 1 - (Diff * 0.025)).
 
+%% Temperatura baja (8-18°C)
+temperature_adjustment(Temp, toxorhynchites, Factor) :-
+    Temp >= 8, Temp < 18,
+    Factor is max(0.05, 0.4 - (18 - Temp) * 0.035).  % More cold-tolerant than Aedes
+
+%% Temperatura muy baja (<8°C)
+temperature_adjustment(Temp, toxorhynchites, Factor) :-
+    Temp < 8,
+    Factor is 0.01.
+
+%% Temperatura alta (>35°C)
+temperature_adjustment(Temp, toxorhynchites, Factor) :-
+    Temp > 35, Temp =< 42,
+    Factor is max(0.05, 0.65 - (Temp - 35) * 0.108).  % More heat-tolerant
+
+%% Temperatura letal (>42°C)
+temperature_adjustment(Temp, toxorhynchites, Factor) :-
+    Temp > 42,
+    Factor is 0.01.
+
 %% humidity_adjustment/2: Calcula factor de ajuste por humedad.
 %% @param Humedad: Humedad relativa en porcentaje
-%% @param Factor: Factor de ajuste [0.3-1.0]
-%% La humedad óptima es >60%, crítica <60%.
+%% @param Factor: Factor de ajuste [0.01-1.0]
+%% Óptima: >60%, tolerable 40-60%, crítica 20-40%, letal <20%
 humidity_adjustment(Humidity, Factor) :-
     Humidity >= 60,
     Factor is min(1.0, 0.7 + (Humidity - 60) * 0.0075).
+
+%% Humedad tolerable (40-60%)
 humidity_adjustment(Humidity, Factor) :-
-    Humidity < 60,
-    Factor is max(0.3, Humidity / 100).
+    Humidity >= 40, Humidity < 60,
+    Factor is 0.5 + (Humidity - 40) * 0.01.  % Linear from 0.5 to 0.7
+
+%% Humedad baja (20-40%)
+humidity_adjustment(Humidity, Factor) :-
+    Humidity >= 20, Humidity < 40,
+    Factor is max(0.1, 0.35 - (40 - Humidity) * 0.0125).  % Rapid decrease
+
+%% Humedad crítica (<20%)
+humidity_adjustment(Humidity, Factor) :-
+    Humidity < 20,
+    Factor is 0.01.  % Nearly lethal
 
 %% effective_survival/6: Calcula supervivencia efectiva con factores ambientales.
 %% @param Especie: Especie a evaluar

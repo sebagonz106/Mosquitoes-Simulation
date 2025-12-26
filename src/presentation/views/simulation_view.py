@@ -577,8 +577,16 @@ class SimulationView(ttk.Frame):
             return False
             
     def _on_species_changed(self):
-        """Handle species selection change."""
-        self._load_defaults()
+        """Handle species selection change.
+        
+        Note: Preserves all parameter values when switching species.
+        Parameters are now species-independent.
+        """
+        # Simply log the species change without resetting parameters
+        # To reset parameters use: self._load_defaults()
+        species_display = self.species_var.get()
+        if self.on_log:
+            self.on_log(f"Especie cambiada a: {species_display}", "info")
         
     def _load_defaults(self):
         """Load default values for selected species."""

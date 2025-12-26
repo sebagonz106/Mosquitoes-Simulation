@@ -771,6 +771,77 @@ class PrologBridge:
             )
         
         return survival_dict
+    
+    def get_predation_rate(
+        self,
+        stage: str,
+        predator_density: float,
+        base_rate: float,
+        temperature: float
+    ) -> float:
+        """
+        Query Prolog for predation-adjusted survival rate.
+        
+        Consults predation_rate/4 predicate to adjust survival based on
+        predator density and environmental conditions.
+        
+        Args:
+            stage: Life stage being predated (e.g., 'larva', 'larva_l3')
+            predator_density: Ratio of predators to prey
+            base_rate: Base survival rate without predation
+            temperature: Current temperature (°C, affects predator activity)
+        
+        Returns:
+            Adjusted survival rate after predation (0.0 to 1.0)
+            Falls back to simple reduction if Prolog query fails.
+        
+        Example:
+            >>> rate = bridge.get_predation_rate('larva', 0.2, 0.85, 28.0)
+            >>> # Returns lower rate due to predation pressure
+            >>> rate < 0.85
+            True
+        
+        Note:
+            Prolog predicate: predation_rate(Stage, Density, BaseRate, AdjustedRate)
+            Defined in population_dynamics.pl:
+                predation_rate(Stage, Density, BaseRate, AdjustedRate) :-
+                    prey_vulnerability(Stage, Vulnerability),
+                    predation_risk(Density, Risk),
+                    Reduction is Vulnerability * Risk,
+                    AdjustedRate is BaseRate * (1 - Reduction).
+        """
+        try:
+            # Query Prolog for adjusted rate
+            query = (
+                f"predation_rate({stage}, {predator_density}, "
+                f"{base_rate}, AdjustedRate)"
+            )
+            
+            result = self.query_once(query)
+            if result and 'AdjustedRate' in result:
+                adjusted_rate = float(result['AdjustedRate'])
+                
+                # Validate range
+                if 0 <= adjusted_rate <= 1:
+                    logger.debug(
+                        f"Predation: {stage} survival {base_rate:.3f} → "
+                        f"{adjusted_rate:.3f} (density={predator_density:.3f})"
+                    )
+                    return adjusted_rate
+                else:
+                    logger.warning(
+                        f"Prolog returned out-of-range predation rate: {adjusted_rate}"
+                    )
+            
+        except Exception as e:
+            logger.debug(f"Predation query failed: {e}, using fallback calculation")
+        
+        # Fallback: simple multiplicative reduction
+        # Higher density → more predation → lower survival
+        reduction_factor = 1.0 / (1.0 + predator_density)
+        adjusted_rate = base_rate * reduction_factor
+        
+        return adjusted_rate
 
     def __repr__(self) -> str:
         """String representation of PrologBridge."""
