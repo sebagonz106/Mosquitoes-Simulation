@@ -515,7 +515,65 @@ plot_population_evolution(results)
 | Población final (día 90) | 1,799 | 256,814 | +14,175% |
 | Realismo biológico | Bajo | Alto | - |
 
-### 5.2 Simulación Basada en Agentes (Implementada, GUI Pendiente)
+### 5.2 Simulación Presa-Depredador (Modelo Poblacional, Operativa)
+
+**Flujo de ejecución**:
+
+```python
+from application.services.population_service import PopulationService
+from application.dtos import PredatorPreyConfig
+
+# 1. Usuario configura simulación en GUI
+config = PredatorPreyConfig(
+    species_id='aedes_aegypti',
+    predator_species_id='toxorhynchites',
+    duration_days=90,
+    
+    # Poblaciones iniciales de presa
+    initial_eggs=1000,
+    initial_larvae=500,
+    initial_pupae=100,
+    initial_adults=100,
+    
+    # Poblaciones iniciales de depredador
+    predator_initial_larvae=20,
+    predator_initial_pupae=5,
+    predator_initial_adults=10,
+    
+    # Ambiente compartido
+    temperature=28.0,
+    humidity=75.0,
+    water_availability=0.8
+)
+
+# 2. Servicio ejecuta simulación con Prolog
+service = PopulationService()
+result = service.simulate_predator_prey(config, use_prolog=True)
+
+# 3. Análisis de resultados
+print(f"Reducción de presa: {result.statistics['predation_reduction_percent']:.1f}%")
+print(f"Pico de presa: {result.statistics['prey_peak']:.0f}")
+print(f"Pico de depredador: {result.statistics['predator_peak']:.0f}")
+
+# 4. Comparación con/sin depredadores
+comparison = service.compare_predation_effect(config, use_prolog=True)
+print(f"Con depredadores: {comparison['with_predators'].statistics['prey_final']:.0f}")
+print(f"Sin depredadores: {comparison['without_predators'].statistics['prey_final']:.0f}")
+```
+
+**Características del Modelo**:
+
+| Aspecto | Implementación |
+|---------|----------------|
+| **Especies modeladas** | Presa (*Aedes aegypti*) y Depredador (*Toxorhynchites*) |
+| **Estadios de presa** | Huevos, Larvas L1-L4, Pupas, Adultos |
+| **Estadios de depredador** | Larvas, Pupas, Adultos |
+| **Motor de inferencia** | Prolog obligatorio para ambas especies |
+| **Condiciones ambientales** | Compartidas entre presa y depredador |
+| **Comparación automática** | Con y sin depredadores en cada ejecución |
+| **Visualización** | Dinámicas completas (2×2 grid) y comparación lado a lado |
+
+### 5.3 Simulación Basada en Agentes (Semimplementada, extensión y GUI Pendiente)
 
 ```python
 # Cada mosquito es un agente autónomo
@@ -618,24 +676,37 @@ except Exception as e:
 
 ---
 
-## 7. Resultados y Validación
+- ✓ Interfaz gráfica completa con patrón MVC
 
-### 7.1 Test de Integración Prolog-Python
+### 8.2 Integración Híbrida
 
-**Script**: `test_prolog_integration.py`
+- ✓ Programación lógica (Prolog) para razonamiento biológico
+- ✓ Programación imperativa (Python) para cálculos numéricos
+- ✓ Comunicación bidireccional sin acoplamiento fuerte
+- ✓ Uso transparente de Prolog en simulaciones presa-depredador
 
-```
-============================================================
-PROLOG-PYTHON INTEGRATION TEST
-============================================================
+### 8.3 Robustez
 
-CHECK 1: Static Rates (No Prolog)
-  - Egg→Larva: 0.211
-  - Larva L1→L2: 0.115
-  - Larva L2→L3: 0.474
-✓ Static rates unchanged
+- ✓ Fallback a tasas estáticas si Prolog falla
+- ✓ Validación exhaustiva de entradas/salidas
+- ✓ Logs detallados para debugging
+- ✓ Manejo seguro de widgets en GUI
 
-CHECK 2: Dynamic Rates (With Prolog)
+### 8.4 Extensibilidad
+
+- ✓ Nueva especie: agregar archivo `.json` + hechos Prolog
+- ✓ Nueva regla ambiental: modificar `environmental_effects.pl`
+- ✓ Nuevo comportamiento de agente: extender `agent_behaviors.pl`
+- ✓ Nuevos presets: extender `scenario_presets.py`
+
+### 8.5 Interfaz de Usuario
+
+- ✓ GUI completa con Tkinter multiplataforma
+- ✓ Validación en tiempo real con indicadores visuales
+- ✓ Presets de escenarios para configuración rápida
+- ✓ Visualización integrada de resultados con Matplotlib
+- ✓ Exportación de datos (CSV) y gráficas (PNG)
+- ✓ Navegación intuitiva por pestañas para diferentes simulaciones
   - Egg→Larva: 0.620 (+194%)
   - Larva L1→L2: 0.620 (+439%)
   - Larva L2→L3: 0.697 (+47%)
@@ -716,11 +787,43 @@ results = compare_scenarios(scenarios)
 
 ### 9.2 Evaluación de Control Biológico
 
-**Pregunta**: ¿Cuántos *Toxorhynchites* se necesitan para reducir *Aedes* 50%?
+**Pregunta**: ¿Qué efectividad tiene introducir *Toxorhynchites* para controlar *Aedes aegypti*?
 
-**Solución**: Simulación basada en agentes con depredación activada.
+**Solución**: Usar la simulación presa-depredador con comparación automática.
+
+**Interfaz GUI**: Pestaña "🦁 Presa-Depredador" → Seleccionar preset (ej. "Control Fuerte") → Ejecutar simulación → Ver gráfica de comparación con/sin depredadores.
 
 ```python
+# Configurar poblaciones iniciales
+config = PredatorPreyConfig(
+    species_id='aedes_aegypti',
+    predator_species_id='toxorhynchites',
+    initial_adults=100,  # Presa
+    predator_initial_adults=10,  # Depredador
+    temperature=28.0,
+    humidity=75.0,
+    water_availability=0.8,
+    duration_days=90
+)
+
+# Comparar con y sin depredadores
+comparison = service.compare_predation_effect(config, use_prolog=True)
+print(f"Reducción de población: {comparison['reduction_percentage']:.1f}%")
+```
+
+### 9.3 Análisis de Sensibilidad Ambiental
+
+**Pregunta**: ¿Cómo afecta la disponibilidad de agua a las dinámicas de depredación?
+
+**Solución**: Ejecutar múltiples simulaciones variando el parámetro `water_availability`.
+
+**Interfaz GUI**: Comparar presets "Tropical Seco" (agua: 0.4) vs. "Monzón" (agua: 1.0) y observar diferencias en reducción poblacional.
+
+### 9.4 Optimización de Estrategias de Liberación
+
+**Pregunta**: ¿Cuál es el momento óptimo para liberar depredadores?
+
+**Solución**: Usar preset "Introducción Tardía" (depredadores después de día 30) vs. "Balanceado" (desde día 0) y compara
 for predator_count in [10, 50, 100, 200]:
     result = run_agent_simulation(
         config=config,
@@ -746,20 +849,27 @@ for predator_count in [10, 50, 100, 200]:
 | **Integración** | PySwip 0.2.10+ | Puente Python-Prolog |
 | **Cálculo numérico** | NumPy 1.21+ | Álgebra matricial (Leslie) |
 | **Visualización** | Matplotlib 3.5+ | Gráficos de evolución temporal |
-| **GUI** | Tkinter | Interfaz gráfica multiplataforma |
-| **Persistencia** | JSON | Configuración y checkpoints |
+6. **Simulación presa-depredador operativa**: Interfaz gráfica completa para modelar interacciones *Toxorhynchites*-*Aedes aegypti* con comparación automática de escenarios.
 
----
+7. **Interfaz de usuario completa**: GUI intuitiva con validación en tiempo real, presets de escenarios, visualización integrada y exportación de datos.
 
-## 11. Conclusiones
+### Aplicaciones Potenciales
 
-Este proyecto demuestra la **viabilidad y ventajas** de integrar programación lógica con modelado matemático para simulaciones biológicas:
+- Modelado de escenarios de cambio climático con presets ambientales
+- Evaluación de estrategias de control vectorial mediante simulaciones comparativas
+- Optimización de liberaciones de depredadores biológicos variando poblaciones iniciales
+- Predicción de brotes epidemiológicos con diferentes condiciones ambientales
+- Educación en modelado ecológico computacional con interfaz visual intuitiva
+- Análisis de sensibilidad ambiental para estudios de vectores
 
-### Logros Principales
+### Trabajo Futuro
 
-1. **Tasas de supervivencia dinámicas**: Prolog ajusta tasas en tiempo real según condiciones ambientales, mejorando realismo biológico.
-
-2. **Arquitectura extensible**: Separación clara de responsabilidades permite agregar especies, reglas y comportamientos sin modificar código existente.
+- **GUI para agentes**: Interfaz para configurar y visualizar simulaciones multiagente individualizadas
+- **Simulación híbrida**: Comparación visual entre modelos poblacionales y basados en agentes
+- **Validación empírica**: Comparar predicciones con datos de campo de liberaciones de *Toxorhynchites*
+- **Optimización**: Paralelización de consultas Prolog para simulaciones de largo plazo
+- **Análisis estadístico avanzado**: Herramientas de análisis de sensibilidad y optimización integradas en GUI
+- **Exportación mejorada**: Reportes automatizados en PDF con gráficas y estadísticagregar especies, reglas y comportamientos sin modificar código existente.
 
 3. **Validación cuantitativa**: Tests muestran diferencias de hasta **+14,000%** en población entre modelos estáticos y dinámicos.
 
@@ -777,7 +887,7 @@ Este proyecto demuestra la **viabilidad y ventajas** de integrar programación l
 
 ### Trabajo Futuro
 
-- **Activación de depredación**: Habilitar reglas de caza en `population_dynamics.pl`
+- **Activación de depredación**: completo, Frontend operativo, Simulación presa-depredador funcional`population_dynamics.pl`
 - **GUI para agentes**: Interfaz para configurar y visualizar simulaciones multiagente
 - **Validación empírica**: Comparar predicciones con datos de campo
 - **Optimización**: Paralelización de consultas Prolog para simulaciones grandes

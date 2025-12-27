@@ -66,24 +66,29 @@ Este sistema permite modelar computacionalmente la efectividad de introducir *To
 
 #### Backend (Completado)
 - **Simulación poblacional**: Modelo basado en matrices de Leslie con integración Prolog
+- **Simulación depredador-presa**: Modelado completo de interacciones *Toxorhynchites*-*Aedes aegypti*
 - **Tasas de supervivencia dinámicas**: Motor Prolog ajusta tasas según condiciones ambientales en tiempo real
-- **Comparación de escenarios**: Análisis de sensibilidad multi-parámetro
+- **Comparación automática**: Evaluación de escenarios con y sin depredadores
+- **Análisis de impacto**: Cálculo de reducción poblacional por depredación
 - **Persistencia**: Sistema de checkpoints para guardar/restaurar simulaciones
 - **Configuración flexible**: Parámetros biológicos externalizados en JSON
-- **Visualización**: Gráficos de evolución temporal y comparaciones estadísticas
+- **Visualización avanzada**: Gráficos multi-panel con dinámicas de presa y depredador
 - **Arquitectura limpia**: Separación de responsabilidades en capas independientes
 
 #### Frontend (Completado)
 - **Interfaz gráfica (GUI)**: Aplicación de escritorio con tkinter
+- **Simulación de especies únicas**: Configuración completa para *Aedes aegypti* y *Toxorhynchites*
+- **Simulación presa-depredador**: Pestaña dedicada con parámetros duales sincronizados
 - **Validación en tiempo real**: Indicadores visuales (✓/⚠/✗) para rangos de parámetros
 - **Tooltips informativos**: Ayuda contextual detallada en todos los parámetros
-- **Presets de escenarios**: 10 escenarios predefinidos en 5 categorías (Base, Estrés, Control, Óptimas, Brote)
-- **Configuración visual**: Formularios intuitivos para parámetros de simulación
-- **Visualización de resultados**: Gráficos integrados de evolución poblacional
+- **Presets ambientales**: 6 configuraciones predefinidas (Tropical, Templado, Extremo, Monzón)
+- **Presets depredador-presa**: 9 escenarios de interacción (Balanceado, Control débil/fuerte, Presión, Brote)
+- **Visualización de resultados**: Gráficos integrados de evolución poblacional por estadio
+- **Comparación visual**: Gráficas de impacto de depredación con estadísticas overlay
+- **Exportación de datos**: Funcionalidad CSV y PNG para resultados y gráficas
 
 #### En Desarrollo
 - **Simulación basada en agentes**: Arquitectura implementada, pendiente integración GUI
-- **Control biológico con depredación**: Bases sentadas en código Prolog, pendiente activación
 - **Simulación híbrida**: Comparación poblacional vs. agentes pendiente
 
 ---
@@ -311,31 +316,44 @@ python main.py
 
 #### Características de la GUI:
 
-1. **Escenarios Predefinidos**
-   - 10 escenarios organizados en 5 categorías
-   - Carga automática de parámetros con un clic
-   - Vista previa de descripción de cada escenario
+1. **Simulación de Especie Única**
+   - Configuración para *Aedes aegypti* o *Toxorhynchites* individualmente
+   - 10 escenarios predefinidos en 5 categorías (Base, Estrés, Control, Óptimas, Brote)
+   - Poblaciones iniciales por estadio (huevos, larvas L1-L4, pupas, adultos)
+   - Condiciones ambientales unificadas
+   - Visualización de evolución temporal completa
 
-2. **Validación en Tiempo Real**
+2. **Simulación Presa-Depredador**
+   - Pestaña dedicada "🦁 Presa-Depredador"
+   - Parámetros ambientales compartidos entre especies
+   - Configuración dual: poblaciones de presa (4 estadios) y depredador (3 estadios)
+   - 6 presets ambientales: Tropical Óptimo, Tropical Seco, Templado, Calor Extremo, Invierno, Monzón
+   - 9 presets de interacción: Balanceado, Control Débil, Control Fuerte, Presión sobre Presa, Introducción Tardía, Seco, Óptimo, Largo Plazo, Brote
+   - Comparación automática con y sin depredadores
+   - Uso obligatorio de Prolog para inferencia dinámica
+
+3. **Validación en Tiempo Real**
    - Indicadores visuales: ✓ (válido), ⚠ (fuera de rango), ✗ (error)
    - Actualización instantánea al modificar valores
    - Tooltips con mensajes de error específicos
 
-3. **Ayuda Contextual**
+4. **Ayuda Contextual**
    - Tooltips informativos en todos los parámetros
    - Información sobre rangos válidos y valores típicos
    - Guías de referencia para configuraciones
 
-4. **Configuración de Simulación**
-   - Selección de especie (Aedes aegypti / Toxorhynchites)
-   - Poblaciones iniciales (huevos, larvas, pupas, adultos)
-   - Condiciones ambientales (temperatura, humedad, agua)
-   - Duración de simulación (1-365 días)
-
 5. **Visualización de Resultados**
-   - Gráficos de evolución poblacional por estadio
-   - Estadísticas clave (pico poblacional, tendencias)
-   - Exportación de resultados
+   - **Especie única**: Gráficos de evolución poblacional por estadio con estadísticas
+   - **Presa-Depredador**: Visualización dual con dos modos:
+     * **Dinámicas Completas**: Grid 2×2 con poblaciones totales, composición por estadio (presa y depredador), y estadísticas overlay
+     * **Comparación con/sin Depredadores**: Gráficas lado a lado mostrando impacto de depredación con porcentaje de reducción
+   - Estadísticas detalladas: poblaciones inicial/final, picos, promedios, desviación estándar
+   - Botones para alternar entre vistas de gráficas
+
+6. **Exportación de Datos**
+   - **CSV**: Exportación de trayectorias completas (día, poblaciones por estadio, condiciones ambientales)
+   - **PNG**: Guardado de todas las gráficas disponibles (dinámicas y comparaciones)
+   - Selección de carpeta de destino mediante diálogo
 
 ### Ejemplo Básico: Simulación Poblacional (API)
 
@@ -368,7 +386,58 @@ print(f"Pico poblacional: {result.statistics['peak_population']:.0f}")
 print(f"Día del pico: {result.statistics['peak_day']}")
 ```
 
-### Simulación con Depredadores (Basada en Agentes)
+### Simulación con Depredadores (Modelo Poblacional)
+
+```python
+from application.services.population_service import PopulationService
+from application.dtos import PredatorPreyConfig
+
+# Servicio de simulación
+service = PopulationService()
+
+# Configurar simulación presa-depredador
+config = PredatorPreyConfig(
+    species_id='aedes_aegypti',           # Presa
+    predator_species_id='toxorhynchites', # Depredador
+    duration_days=90,
+    
+    # Poblaciones iniciales de presa
+    initial_eggs=1000,
+    initial_larvae=500,
+    initial_pupae=100,
+    initial_adults=100,
+    
+    # Poblaciones iniciales de depredador (estadios larvales únicamente)
+    predator_initial_larvae=20,
+    predator_initial_pupae=5,
+    predator_initial_adults=10,
+    
+    # Ambiente compartido
+    temperature=28.0,
+    humidity=75.0,
+    water_availability=0.8
+)
+
+# Ejecutar simulación con depredadores
+result = service.simulate_predator_prey(config, use_prolog=True)
+
+print(f"Presa - Población inicial: {result.statistics['prey_initial']:.0f}")
+print(f"Presa - Población final: {result.statistics['prey_final']:.0f}")
+print(f"Presa - Reducción por depredación: {result.statistics['predation_reduction_percent']:.1f}%")
+print(f"Depredador - Población final: {result.statistics['predator_final']:.0f}")
+
+# Comparar con y sin depredadores
+comparison = service.compare_predation_effect(config, use_prolog=True)
+
+with_pred = comparison['with_predators']
+without_pred = comparison['without_predators']
+
+print(f"\nCon depredadores: {with_pred.statistics['prey_final']:.0f} presas")
+print(f"Sin depredadores: {without_pred.statistics['prey_final']:.0f} presas")
+print(f"Efectividad del control: {comparison['reduction_percentage']:.1f}%")
+```
+
+### Simulación Basada en Agentes (Código Implementado, GUI Pendiente)
 
 ```python
 # Simulación con Toxorhynchites como control biológico
@@ -395,9 +464,9 @@ hybrid_result = service.run_hybrid_simulation(
 
 # Comparar resultados
 summary = hybrid_result.get_comparison_summary()
-print(f"Pico (Poblacional): {summary['population_peak']:.0f}")
+print(f"Pico (Poblacional: {summary['population_peak']:.0f}")
 print(f"Pico (Agentes): {summary['agent_peak']:.0f}")
-print(f"Diferencia: {summary['difference_peak']:.0f}")
+print(f"Diferencia: {summary[Comparativa]:.0f}")
 ```
 
 ### Comparación de Escenarios
@@ -484,10 +553,12 @@ loaded_result = load_response.result
 ```python
 from application.visualization import (
     plot_population_evolution,
-    plot_scenario_comparison
+    plot_scenario_comparison,
+    plot_predator_prey_interaction,
+    plot_predation_impact_comparison
 )
 
-# Gráfico de evolución poblacional
+# Gráfico de evolución poblacional (especie única)
 fig = plot_population_evolution(
     result=result,
     save_path='results/population_evolution.png'
@@ -498,6 +569,21 @@ fig = plot_scenario_comparison(
     comparison_result=response.result,
     metric='peak_population',
     save_path='results/scenario_comparison.png'
+)
+
+# Gráfico de interacción presa-depredador (2×2 grid)
+fig = plot_predator_prey_interaction(
+    result=predator_prey_result,
+    show=True,
+    save_path='results/predator_prey_dynamics.png'
+)
+
+# Gráfico de comparación con/sin depredadores
+fig = plot_predation_impact_comparison(
+    with_predators=comparison['with_predators'],
+    without_predators=comparison['without_predators'],
+    show=True,
+    save_path='results/predation_impact.png'
 )
 ```
 
@@ -734,7 +820,6 @@ La GUI implementa el patrón **Modelo-Vista-Controlador (MVC)**:
 | Componente | Prioridad | Estado |
 |------------|-----------|--------|
 | **Simulación basada en agentes** | Alta | Código implementado, pendiente GUI |
-| **Depredación Toxorhynchites** | Alta | Reglas Prolog listas, pendiente activación |
 | **Simulación híbrida** | Media | Backend listo, pendiente interfaz |
 | **CLI** | Media | Por implementar |
 | **API REST** | Baja | Por implementar |
