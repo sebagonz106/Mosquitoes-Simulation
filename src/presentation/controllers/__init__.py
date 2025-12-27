@@ -5,6 +5,7 @@ Presentation Layer - Controllers
 Business logic controllers for the presentation layer.
 """
 
-from presentation.controllers.simulation_controller import SimulationController
+from .simulation_controller import SimulationController
+from .predator_prey_controller import PredatorPreyController
 
-__all__ = ['SimulationController']
+__all__ = ['SimulationController', 'PredatorPreyController']

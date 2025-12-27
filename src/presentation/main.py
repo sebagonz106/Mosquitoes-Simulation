@@ -15,8 +15,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 from presentation.styles.theme import Colors, Fonts, Spacing, configure_styles
 from presentation.components import Sidebar, LogPanel
-from presentation.views import HomeView, SimulationView, ResultsView, CompareView, CheckpointsView, SpeciesView
-from presentation.controllers import SimulationController
+from presentation.views import HomeView, SimulationView, PredatorPreyView, ResultsView, PredatorPreyResultsView, CompareView, CheckpointsView, SpeciesView
+from presentation.controllers import SimulationController, PredatorPreyController
 
 
 class Application(tk.Tk):
@@ -51,6 +51,7 @@ class Application(tk.Tk):
         
         # Initialize controller
         self.simulation_controller = SimulationController()
+        self.predator_prey_controller = PredatorPreyController()
         
         # Setup UI
         self._setup_ui()
@@ -154,6 +155,15 @@ class Application(tk.Tk):
             self.current_view_widget = SimulationView(
                 self.content_frame,
                 controller=self.simulation_controller,
+                on_results=self._on_simulation_results,
+                on_log=self._on_log_message
+            )
+            
+        elif view_name == 'predator_prey':
+            # Predator-prey simulation view
+            self.current_view_widget = PredatorPreyView(
+                self.content_frame,
+                controller=self.predator_prey_controller,
                 on_results=self._on_simulation_results,
                 on_log=self._on_log_message
             )
@@ -271,9 +281,11 @@ class Application(tk.Tk):
         Handle simulation results.
         
         Args:
-            result: Simulation result (PopulationResult, AgentResult, or HybridResult)
+            result: Simulation result (PopulationResult, AgentResult, HybridResult, or PredatorPreyResult)
             config: SimulationConfig used for the simulation
         """
+        from application.dtos import PredatorPreyResult
+        
         # Store config for checkpoint saving
         self.current_config = config
         
@@ -282,20 +294,41 @@ class Application(tk.Tk):
             self.current_view_widget.destroy()
             self.current_view_widget = None
         
-        # Create results view with controller and config
-        self.current_view_widget = ResultsView(
-            self.content_frame,
-            result,
-            controller=self.simulation_controller,
-            config=config
-        )
+        # Check if it's a predator-prey result or comparison result
+        if isinstance(result, PredatorPreyResult):
+            # Single predator-prey simulation result
+            self.current_view_widget = PredatorPreyResultsView(
+                self.content_frame,
+                result,
+                comparison_result=None,
+                on_log=self._on_log_message
+            )
+        elif isinstance(result, dict) and ('with_predators' in result or 'result_with' in result):
+            # Comparison result dict
+            # Get the main result (with predators)
+            main_result = result.get('with_predators', result.get('result_with'))
+            self.current_view_widget = PredatorPreyResultsView(
+                self.content_frame,
+                main_result,
+                comparison_result=result,
+                on_log=self._on_log_message
+            )
+        else:
+            # Standard population/agent/hybrid result
+            self.current_view_widget = ResultsView(
+                self.content_frame,
+                result,
+                controller=self.simulation_controller,
+                config=config
+            )
+        
         self.current_view_widget.pack(fill=tk.BOTH, expand=True)
         
         # Reset scroll
         self.content_canvas.yview_moveto(0)
         
         # Log
-        self.log_panel.log_success("Resultados cargados - use los botones para exportar")
+        self.log_panel.log_success("Resultados cargados")
         
     def _on_log_message(self, message: str, level: str):
         """

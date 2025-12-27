@@ -345,27 +345,17 @@ class PredatorPreyService:
         # Simulation WITH predators
         result_with = PredatorPreyService.simulate(config, use_prolog)
         
-        # Compare
-        prey_without = result_without.statistics.get('prey_final', 0)
-        prey_with = result_with.statistics.get('prey_final', 0)
-        
+        # Return full results objects for GUI visualization
         comparison = {
+            'with_predators': result_with,
+            'without_predators': result_without,
             'prey_species': config.species_id,
-            'without_predators': {
-                'final_population': int(prey_without),
-                'peak_population': result_without.statistics.get('prey_peak', 0)
-            },
-            'with_predators': {
-                'final_population': int(prey_with),
-                'peak_population': result_with.statistics.get('prey_peak', 0),
-                'predator_species': config.predator_species_id,
-                'predator_final': int(result_with.statistics.get('predator_final', 0))
-            },
             'predation_impact': {
-                'prey_reduction': int(prey_without - prey_with),
+                'prey_reduction': int(result_without.statistics.get('prey_final', 0) - result_with.statistics.get('prey_final', 0)),
                 'reduction_percent': round(
-                    (prey_without - prey_with) / prey_without * 100, 2
-                ) if prey_without > 0 else 0
+                    (result_without.statistics.get('prey_final', 0) - result_with.statistics.get('prey_final', 0)) / 
+                    result_without.statistics.get('prey_final', 1) * 100, 2
+                ) if result_without.statistics.get('prey_final', 0) > 0 else 0
             }
         }
         

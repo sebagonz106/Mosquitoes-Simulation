@@ -93,9 +93,9 @@ class Spacing:
     """Spacing constants for consistent layout."""
     
     # Padding
-    PADDING_SMALL = 5
-    PADDING_MEDIUM = 10
-    PADDING_LARGE = 20
+    PADDING_SMALL = SMALL = 5
+    PADDING_MEDIUM = MEDIUM = 10
+    PADDING_LARGE = LARGE = 20
     PADDING_XLARGE = 30
     
     # Margins

@@ -11,7 +11,7 @@ import matplotlib.figure
 import numpy as np
 from pathlib import Path
 
-from application.dtos import PopulationResult, AgentResult, ComparisonResult
+from application.dtos import PopulationResult, AgentResult, ComparisonResult, PredatorPreyResult
 
 
 # ============================================================================
@@ -568,3 +568,209 @@ def create_report_figure(
         plt.show()
     
     return fig
+
+
+# ============================================================================
+# PREDATOR-PREY VISUALIZATION
+# ============================================================================
+
+def plot_predator_prey_interaction(
+    result: PredatorPreyResult,
+    show: bool = True,
+    save_path: Optional[str] = None,
+    figsize: tuple = (15, 10)
+) -> matplotlib.figure.Figure:
+    """
+    Plot complete predator-prey interaction dynamics.
+    
+    Shows:
+    - Total prey and predator populations over time
+    - Prey stage composition (stacked area)
+    - Predator stage composition (stacked area)
+    - Key statistics overlay
+    
+    Args:
+        result: PredatorPreyResult to visualize
+        show: Whether to display the plot
+        save_path: Optional path to save figure
+        figsize: Figure size (width, height)
+    
+    Returns:
+        Matplotlib Figure object
+    """
+    from application.dtos import PredatorPreyResult
+    
+    fig = plt.figure(figsize=figsize)
+    gs = fig.add_gridspec(2, 2, hspace=0.3, wspace=0.3)
+    
+    days = np.arange(len(result.prey_trajectory))
+    
+    # ===== [TOP LEFT] Total Population Over Time =====
+    ax1 = fig.add_subplot(gs[0, 0])
+    
+    prey_totals = [state['total'] for state in result.prey_trajectory]
+    predator_totals = [np.sum(pred_vec) for pred_vec in result.predator_trajectory]
+    
+    ax1.plot(days, prey_totals, color='#1f77b4', linewidth=2.5, label='Prey (Aedes)', marker='o', markersize=3)
+    ax1.plot(days, predator_totals, color='#d62728', linewidth=2.5, label='Predator (Toxo)', marker='s', markersize=3)
+    
+    ax1.set_xlabel('Days', fontsize=10, fontweight='bold')
+    ax1.set_ylabel('Population', fontsize=10, fontweight='bold')
+    ax1.set_title('Population Dynamics', fontsize=12, fontweight='bold')
+    ax1.legend(loc='best', fontsize=9)
+    ax1.grid(True, alpha=0.3, linestyle='--')
+    
+    # ===== [TOP RIGHT] Prey Stage Distribution =====
+    ax2 = fig.add_subplot(gs[0, 1])
+    
+    eggs = [state['eggs'] for state in result.prey_trajectory]
+    larvae = [state['larvae'] for state in result.prey_trajectory]
+    pupae = [state['pupae'] for state in result.prey_trajectory]
+    adults = [state['adults'] for state in result.prey_trajectory]
+    
+    ax2.stackplot(days, eggs, larvae, pupae, adults,
+                  labels=['Eggs', 'Larvae', 'Pupae', 'Adults'],
+                  colors=['#e6f2ff', '#b3d9ff', '#6bb6ff', '#0066ff'],
+                  alpha=0.8)
+    
+    ax2.set_xlabel('Days', fontsize=10, fontweight='bold')
+    ax2.set_ylabel('Population', fontsize=10, fontweight='bold')
+    ax2.set_title('Prey Stage Composition', fontsize=12, fontweight='bold')
+    ax2.legend(loc='upper right', fontsize=9)
+    ax2.grid(True, alpha=0.3, linestyle='--', axis='y')
+    
+    # ===== [BOTTOM LEFT] Predator Stage Distribution =====
+    ax3 = fig.add_subplot(gs[1, 0])
+    
+    pred_larvae = [vec[0] if len(vec) > 0 else 0 for vec in result.predator_trajectory]
+    pred_pupae = [vec[1] if len(vec) > 1 else 0 for vec in result.predator_trajectory]
+    pred_adults = [vec[3] if len(vec) > 3 else 0 for vec in result.predator_trajectory]
+    
+    ax3.stackplot(days, pred_larvae, pred_pupae, pred_adults,
+                  labels=['Larvae', 'Pupae', 'Adults'],
+                  colors=['#ffe6e6', '#ff9999', '#ff0000'],
+                  alpha=0.8)
+    
+    ax3.set_xlabel('Days', fontsize=10, fontweight='bold')
+    ax3.set_ylabel('Population', fontsize=10, fontweight='bold')
+    ax3.set_title('Predator Stage Composition', fontsize=12, fontweight='bold')
+    ax3.legend(loc='upper right', fontsize=9)
+    ax3.grid(True, alpha=0.3, linestyle='--', axis='y')
+    
+    # ===== [BOTTOM RIGHT] Statistics =====
+    ax4 = fig.add_subplot(gs[1, 1])
+    ax4.axis('off')
+    
+    stats = result.statistics
+    prey_reduction = stats.get('predation_reduction_percent', 0)
+    
+    stats_text = f"""
+    PREY STATISTICS (Aedes aegypti)
+    Initial Population: {stats['prey_initial']:.0f}
+    Final Population: {stats['prey_final']:.0f}
+    Peak Population: {stats['prey_peak']:.0f} (day {result.peak_day})
+    Mean Population: {stats['prey_mean']:.1f} ± {stats['prey_std']:.1f}
+    Reduction: {prey_reduction:.1f}%
+    
+    PREDATOR STATISTICS (Toxorhynchites)
+    Initial Population: {stats['predator_initial']:.0f}
+    Final Population: {stats['predator_final']:.0f}
+    Peak Population: {stats['predator_peak']:.0f}
+    Mean Population: {stats['predator_mean']:.1f} ± {stats['predator_std']:.1f}
+    
+    SYSTEM STATUS
+    Duration: {result.duration_days} days
+    Prey Extinct: {'Yes' if stats['prey_final'] == 0 else 'No'}
+    Predator Extinct: {'Yes' if stats['predator_final'] == 0 else 'No'}
+    """
+    
+    ax4.text(0.05, 0.95, stats_text, fontsize=10, family='monospace',
+             verticalalignment='top', bbox=dict(boxstyle='round', facecolor='lightyellow', alpha=0.3))
+    
+    fig.suptitle(f'Predator-Prey Interaction: {result.prey_species_id} vs {result.predator_species_id}',
+                fontsize=14, fontweight='bold')
+    
+    if save_path:
+        plt.savefig(save_path, dpi=300, bbox_inches='tight')
+    
+    if show:
+        plt.show()
+    
+    return fig
+
+
+def plot_predation_impact_comparison(
+    with_predators: 'PredatorPreyResult',
+    without_predators: 'PredatorPreyResult',
+    show: bool = True,
+    save_path: Optional[str] = None,
+    figsize: tuple = (15, 6)
+) -> matplotlib.figure.Figure:
+    """
+    Compare prey populations with and without predators.
+    
+    Args:
+        with_predators: PredatorPreyResult with predators
+        without_predators: PredatorPreyResult without predators (same prey config)
+        show: Whether to display the plot
+        save_path: Optional path to save figure
+        figsize: Figure size (width, height)
+    
+    Returns:
+        Matplotlib Figure object
+    """
+    from application.dtos import PredatorPreyResult
+    
+    fig, axes = plt.subplots(1, 2, figsize=figsize)
+    
+    days_with = np.arange(len(with_predators.prey_trajectory))
+    days_without = np.arange(len(without_predators.prey_trajectory))
+    
+    # Extract total populations
+    prey_with = [state['total'] for state in with_predators.prey_trajectory]
+    prey_without = [state['total'] for state in without_predators.prey_trajectory]
+    
+    # LEFT: With Predators
+    ax1 = axes[0]
+    ax1.plot(days_with, prey_with, color='#d62728', linewidth=2.5, 
+            marker='o', markersize=3, label='Prey (with Toxo)')
+    pred_totals = [np.sum(vec) for vec in with_predators.predator_trajectory]
+    ax1.plot(days_with, pred_totals, color='#ff7f0e', linewidth=2.5,
+            marker='s', markersize=3, label='Predator')
+    
+    ax1.set_xlabel('Days', fontsize=11, fontweight='bold')
+    ax1.set_ylabel('Population', fontsize=11, fontweight='bold')
+    ax1.set_title('WITH Predators', fontsize=12, fontweight='bold')
+    ax1.legend(fontsize=10)
+    ax1.grid(True, alpha=0.3, linestyle='--')
+    
+    # RIGHT: Without Predators
+    ax2 = axes[1]
+    ax2.plot(days_without, prey_without, color='#1f77b4', linewidth=2.5,
+            marker='o', markersize=3, label='Prey (no control)', linestyle='--')
+    
+    ax2.set_xlabel('Days', fontsize=11, fontweight='bold')
+    ax2.set_ylabel('Population', fontsize=11, fontweight='bold')
+    ax2.set_title('WITHOUT Predators', fontsize=12, fontweight='bold')
+    ax2.legend(fontsize=10)
+    ax2.grid(True, alpha=0.3, linestyle='--')
+    
+    # Add statistics text
+    reduction_percent = ((without_predators.statistics['prey_final'] - with_predators.statistics['prey_final']) 
+                        / max(without_predators.statistics['prey_final'], 1) * 100)
+    
+    stats_text = f"Prey Reduction: {reduction_percent:.1f}%"
+    fig.text(0.5, 0.02, stats_text, ha='center', fontsize=11, 
+            bbox=dict(boxstyle='round', facecolor='lightgreen', alpha=0.3))
+    
+    fig.suptitle('Predation Impact Analysis',
+                fontsize=14, fontweight='bold')
+    
+    if save_path:
+        plt.savefig(save_path, dpi=300, bbox_inches='tight')
+    
+    if show:
+        plt.show()
+    
+    return fig
+

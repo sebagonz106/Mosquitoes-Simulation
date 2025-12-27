@@ -73,6 +73,7 @@ class Sidebar(ttk.Frame):
         nav_options = [
             ('home', '🏠 Inicio', 'Vista de inicio'),
             ('simulation', '▶️ Simulación', 'Ejecutar simulaciones'),
+            ('predator_prey', '🦁 Presa-Depredador', 'Simulación de depredador-presa'),
             ('compare', '📊 Comparar', 'Comparar escenarios'),
             ('checkpoints', '💾 Checkpoints', 'Gestionar checkpoints'),
             ('species', '🦟 Especies', 'Información de especies'),

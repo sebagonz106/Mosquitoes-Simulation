@@ -42,6 +42,42 @@ class ScenarioPreset:
     category: str
 
 
+@dataclass
+class PredatorPreyPreset:
+    """
+    Predefined predator-prey scenario configuration.
+    
+    Attributes:
+        name: Display name
+        description: Brief description of scenario purpose
+        prey_species: Prey species identifier
+        predator_species: Predator species identifier
+        duration: Simulation duration in days
+        prey_eggs/larvae/pupae/adults: Initial prey populations
+        predator_larvae/pupae/adults: Initial predator populations
+        temperature: Temperature in Celsius (shared)
+        humidity: Humidity percentage (shared)
+        water_availability: Water availability factor (0-1, shared)
+        category: Scenario category for grouping
+    """
+    name: str
+    description: str
+    prey_species: str
+    predator_species: str
+    duration: int
+    prey_initial_eggs: int
+    prey_initial_larvae: int
+    prey_initial_pupae: int
+    prey_initial_adults: int
+    predator_initial_larvae: int
+    predator_initial_pupae: int
+    predator_initial_adults: int
+    temperature: float
+    humidity: float
+    water_availability: float
+    category: str
+
+
 # Validation ranges for parameters
 PARAMETER_RANGES = {
     'duration': {
@@ -352,6 +388,234 @@ SCENARIO_PRESETS: List[ScenarioPreset] = [
 ]
 
 
+# ============================================================================
+# ENVIRONMENTAL PRESETS (GENERALIZED, REUSABLE)
+# ============================================================================
+
+ENVIRONMENTAL_PRESETS = {
+    'tropical_optimal': {
+        'name': 'Tropical Óptimo',
+        'temperature': 28.0,
+        'humidity': 80.0,
+        'water_availability': 1.0,
+        'description': 'Condiciones ideales tropicales para reproducción'
+    },
+    'tropical_dry': {
+        'name': 'Tropical Seco',
+        'temperature': 30.0,
+        'humidity': 50.0,
+        'water_availability': 0.6,
+        'description': 'Estación seca tropical con estrés hídrico'
+    },
+    'temperate': {
+        'name': 'Templado',
+        'temperature': 20.0,
+        'humidity': 65.0,
+        'water_availability': 0.8,
+        'description': 'Clima templado estacional'
+    },
+    'extreme_hot': {
+        'name': 'Extremo Calor',
+        'temperature': 38.0,
+        'humidity': 30.0,
+        'water_availability': 0.4,
+        'description': 'Condiciones extremas de calor y sequía'
+    },
+    'winter': {
+        'name': 'Invierno',
+        'temperature': 12.0,
+        'humidity': 75.0,
+        'water_availability': 0.5,
+        'description': 'Condiciones de invierno con baja actividad'
+    },
+    'monsoon': {
+        'name': 'Monzón',
+        'temperature': 26.0,
+        'humidity': 95.0,
+        'water_availability': 1.0,
+        'description': 'Período de monzón con lluvia abundante'
+    }
+}
+
+
+# ============================================================================
+# PREDATOR-PREY PRESETS
+# ============================================================================
+
+PREDATOR_PREY_PRESETS = [
+    PredatorPreyPreset(
+        name="Control Balanceado",
+        description="Poblaciones equivalentes de presa y depredador en condiciones óptimas",
+        prey_species='aedes_aegypti',
+        predator_species='toxorhynchites',
+        duration=90,
+        prey_initial_eggs=1000,
+        prey_initial_larvae=500,
+        prey_initial_pupae=100,
+        prey_initial_adults=100,
+        predator_initial_larvae=20,
+        predator_initial_pupae=5,
+        predator_initial_adults=10,
+        temperature=28.0,
+        humidity=80.0,
+        water_availability=1.0,
+        category='balanced'
+    ),
+    
+    PredatorPreyPreset(
+        name="Control Débil (Pocos Depredadores)",
+        description="Introducción minimal de depredadores, control moderado",
+        prey_species='aedes_aegypti',
+        predator_species='toxorhynchites',
+        duration=90,
+        prey_initial_eggs=2000,
+        prey_initial_larvae=1000,
+        prey_initial_pupae=200,
+        prey_initial_adults=150,
+        predator_initial_larvae=5,
+        predator_initial_pupae=2,
+        predator_initial_adults=3,
+        temperature=28.0,
+        humidity=80.0,
+        water_availability=1.0,
+        category='weak_control'
+    ),
+    
+    PredatorPreyPreset(
+        name="Control Fuerte (Muchos Depredadores)",
+        description="Alta densidad de depredadores, control agresivo",
+        prey_species='aedes_aegypti',
+        predator_species='toxorhynchites',
+        duration=90,
+        prey_initial_eggs=1000,
+        prey_initial_larvae=500,
+        prey_initial_pupae=100,
+        prey_initial_adults=100,
+        predator_initial_larvae=60,
+        predator_initial_pupae=20,
+        predator_initial_adults=30,
+        temperature=28.0,
+        humidity=80.0,
+        water_availability=1.0,
+        category='strong_control'
+    ),
+    
+    PredatorPreyPreset(
+        name="Alta Presión de Presa",
+        description="Muchas presas, depredadores insuficientes, compresión de control",
+        prey_species='aedes_aegypti',
+        predator_species='toxorhynchites',
+        duration=90,
+        prey_initial_eggs=5000,
+        prey_initial_larvae=2500,
+        prey_initial_pupae=500,
+        prey_initial_adults=300,
+        predator_initial_larvae=10,
+        predator_initial_pupae=3,
+        predator_initial_adults=5,
+        temperature=28.0,
+        humidity=80.0,
+        water_availability=1.0,
+        category='prey_pressure'
+    ),
+    
+    PredatorPreyPreset(
+        name="Depredador Introducido Tarde",
+        description="Población de presa establecida, depredador agregado a mitad de ciclo",
+        prey_species='aedes_aegypti',
+        predator_species='toxorhynchites',
+        duration=120,
+        prey_initial_eggs=3000,
+        prey_initial_larvae=1500,
+        prey_initial_pupae=300,
+        prey_initial_adults=200,
+        predator_initial_larvae=15,
+        predator_initial_pupae=5,
+        predator_initial_adults=8,
+        temperature=28.0,
+        humidity=80.0,
+        water_availability=1.0,
+        category='late_introduction'
+    ),
+    
+    PredatorPreyPreset(
+        name="Condiciones Secas",
+        description="Control en condiciones de estrés hídrico",
+        prey_species='aedes_aegypti',
+        predator_species='toxorhynchites',
+        duration=90,
+        prey_initial_eggs=500,
+        prey_initial_larvae=250,
+        prey_initial_pupae=50,
+        prey_initial_adults=50,
+        predator_initial_larvae=10,
+        predator_initial_pupae=3,
+        predator_initial_adults=5,
+        temperature=32.0,
+        humidity=40.0,
+        water_availability=0.4,
+        category='stress'
+    ),
+    
+    PredatorPreyPreset(
+        name="Condiciones Tropicales Óptimas",
+        description="Máxima interacción depredador-presa en condiciones ideales",
+        prey_species='aedes_aegypti',
+        predator_species='toxorhynchites',
+        duration=120,
+        prey_initial_eggs=2000,
+        prey_initial_larvae=1000,
+        prey_initial_pupae=200,
+        prey_initial_adults=150,
+        predator_initial_larvae=30,
+        predator_initial_pupae=10,
+        predator_initial_adults=15,
+        temperature=28.0,
+        humidity=85.0,
+        water_availability=1.0,
+        category='optimal'
+    ),
+    
+    PredatorPreyPreset(
+        name="Largo Plazo (180 días)",
+        description="Simulación a largo plazo para evaluar ciclos estacionales",
+        prey_species='aedes_aegypti',
+        predator_species='toxorhynchites',
+        duration=180,
+        prey_initial_eggs=1000,
+        prey_initial_larvae=500,
+        prey_initial_pupae=100,
+        prey_initial_adults=100,
+        predator_initial_larvae=20,
+        predator_initial_pupae=5,
+        predator_initial_adults=10,
+        temperature=26.0,
+        humidity=75.0,
+        water_availability=0.9,
+        category='long_term'
+    ),
+    
+    PredatorPreyPreset(
+        name="Escenario de Epidemia",
+        description="Gran brote sin control, luego introducción de depredadores",
+        prey_species='aedes_aegypti',
+        predator_species='toxorhynchites',
+        duration=90,
+        prey_initial_eggs=10000,
+        prey_initial_larvae=5000,
+        prey_initial_pupae=1000,
+        prey_initial_adults=500,
+        predator_initial_larvae=50,
+        predator_initial_pupae=15,
+        predator_initial_adults=25,
+        temperature=29.0,
+        humidity=80.0,
+        water_availability=1.0,
+        category='outbreak'
+    ),
+]
+
+
 # Category display names and descriptions
 SCENARIO_CATEGORIES = {
     'baseline': {
@@ -373,6 +637,41 @@ SCENARIO_CATEGORIES = {
     'outbreak': {
         'name': 'Escenarios de Brote',
         'description': 'Infestaciones a gran escala y condiciones epidémicas'
+    }
+}
+
+PREDATOR_PREY_CATEGORIES = {
+    'balanced': {
+        'name': 'Control Balanceado',
+        'description': 'Equilibrio entre poblaciones de presa y depredador'
+    },
+    'weak_control': {
+        'name': 'Control Débil',
+        'description': 'Depredadores insuficientes para control robusto'
+    },
+    'strong_control': {
+        'name': 'Control Fuerte',
+        'description': 'Alta densidad de depredadores para supresión de presa'
+    },
+    'prey_pressure': {
+        'name': 'Alta Presión de Presa',
+        'description': 'Poblaciones de presa que superan capacidad de depredador'
+    },
+    'late_introduction': {
+        'name': 'Introducción Tardía',
+        'description': 'Depredadores introducidos cuando presa está establecida'
+    },
+    'stress': {
+        'name': 'Estrés Ambiental',
+        'description': 'Condiciones adversas reducen eficiencia de control'
+    },
+    'long_term': {
+        'name': 'Largo Plazo',
+        'description': 'Simulaciones extendidas para patrones estacionales'
+    },
+    'outbreak': {
+        'name': 'Control de Epidemia',
+        'description': 'Respuesta depredadora a brotes de presa'
     }
 }
 
@@ -440,3 +739,70 @@ def validate_parameter(param_name: str, value: float) -> tuple[bool, str]:
         return False, f"Value must be between {min_val} and {max_val}"
     
     return True, ""
+
+
+# ============================================================================
+# PREDATOR-PREY HELPER FUNCTIONS
+# ============================================================================
+
+def get_predator_prey_presets_by_category(category: Optional[str] = None) -> Union[List[PredatorPreyPreset], Dict[str, List[PredatorPreyPreset]]]:
+    """
+    Get predator-prey presets organized by category.
+    
+    Args:
+        category: Optional category filter
+    
+    Returns:
+        List of presets if category specified, dict of categories if not
+    """
+    if category:
+        return [p for p in PREDATOR_PREY_PRESETS if p.category == category]
+    
+    organized = {}
+    for preset in PREDATOR_PREY_PRESETS:
+        if preset.category not in organized:
+            organized[preset.category] = []
+        organized[preset.category].append(preset)
+    return organized
+
+
+def get_predator_prey_preset_by_name(name: str) -> Optional[PredatorPreyPreset]:
+    """
+    Get predator-prey preset by name.
+    
+    Args:
+        name: Preset name
+    
+    Returns:
+        PredatorPreyPreset instance, or None if not found
+    """
+    for preset in PREDATOR_PREY_PRESETS:
+        if preset.name == name:
+            return preset
+    return None
+
+
+def get_environmental_preset_by_name(name: str) -> Optional[Dict[str, Any]]:
+    """
+    Get environmental preset by name.
+    
+    Args:
+        name: Preset name (e.g., 'tropical_optimal')
+    
+    Returns:
+        Dictionary with temperature, humidity, water_availability, or None
+    """
+    for key, preset in ENVIRONMENTAL_PRESETS.items():
+        if preset['name'] == name or key == name:
+            return preset
+    return None
+
+
+def get_all_environmental_preset_names() -> List[str]:
+    """Get all environmental preset display names."""
+    return [p['name'] for p in ENVIRONMENTAL_PRESETS.values()]
+
+
+def get_all_predator_prey_preset_names() -> List[str]:
+    """Get all predator-prey preset display names."""
+    return [p.name for p in PREDATOR_PREY_PRESETS]
