@@ -270,10 +270,6 @@ effective_survival(Species, Stage, _, _, _, 0.5) :-
     species(Species),
     \+ base_survival(Species, Stage, _).
 
-% ============================================================
-% DEPREDACIÓN (Preparada, actualmente inactiva)
-% ============================================================
-
 % Vulnerabilidad de presas por estadio
 prey_vulnerability(larva_l1, 1.0).  % L1: muy vulnerable
 prey_vulnerability(larva_l2, 0.8).  % L2: vulnerable
@@ -460,36 +456,7 @@ model = PopulationModel(config, prolog_bridge)
     results.append(model.get_populations())
 
 <span class="hljs-comment"># 5. Visualizar resultados en GUI</span>
-plot_population_evolution(results)</code></pre><p><strong>Comparación: Con y sin Prolog</strong></p>
-<table>
-<thead>
-<tr>
-<th>Métrica</th>
-<th>Sin Prolog (Estático)</th>
-<th>Con Prolog (Dinámico)</th>
-<th>Diferencia</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>Tasa supervivencia (día 1)</td>
-<td>0.211</td>
-<td>0.620</td>
-<td>+194%</td>
-</tr>
-<tr>
-<td>Población final (día 90)</td>
-<td>1,799</td>
-<td>256,814</td>
-<td>+14,175%</td>
-</tr>
-<tr>
-<td>Realismo biológico</td>
-<td>Bajo</td>
-<td>Alto</td>
-<td>-</td>
-</tr>
-</tbody></table>
-<h3>5.2 Simulación Presa-Depredador (Modelo Poblacional, Operativa)</h3>
+plot_population_evolution(results)</code></pre><h3>5.2 Simulación Presa-Depredador (Modelo Poblacional, Operativa)</h3>
 <p><strong>Flujo de ejecución</strong>:</p>
 <pre><code class="hljs python"><span class="hljs-keyword">from</span> application.services.population_service <span class="hljs-keyword">import</span> PopulationService
 <span class="hljs-keyword">from</span> application.dtos <span class="hljs-keyword">import</span> PredatorPreyConfig
@@ -652,116 +619,100 @@ agents = [MosquitoAgent(<span class="hljs-string">'aedes_aegypti'</span>, <span 
 <li>✓ Test comparativo: <code>test_dynamic_vs_static_rates()</code></li>
 </ul>
 <hr>
+<h3>6.2 Impacto de Factores Ambientales</h3>
+<table>
+<thead>
+<tr>
+<th>Escenario</th>
+<th>Temp (°C)</th>
+<th>Humedad (%)</th>
+<th>Agua</th>
+<th>Tasa Efectiva</th>
+<th>Poblacion Final</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Óptimo</td>
+<td>28</td>
+<td>80</td>
+<td>1.0</td>
+<td>0.85</td>
+<td>256,814</td>
+</tr>
+<tr>
+<td>Estrés Térmico</td>
+<td>35</td>
+<td>80</td>
+<td>1.0</td>
+<td>0.60</td>
+<td>48,523</td>
+</tr>
+<tr>
+<td>Estrés Hídrico</td>
+<td>28</td>
+<td>30</td>
+<td>0.2</td>
+<td>0.34</td>
+<td>3,456</td>
+</tr>
+<tr>
+<td>Estrés Severo</td>
+<td>38</td>
+<td>25</td>
+<td>0.1</td>
+<td>0.12</td>
+<td>127</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>7. Características Destacadas</h2>
+<h3>7.1 Arquitectura Limpia</h3>
 <ul>
-<li>✓ Interfaz gráfica completa con patrón MVC</li>
+<li>✓ Separación de responsabilidades (Presentación → Aplicación → Dominio → Infraestructura)</li>
+<li>✓ Dependencias unidireccionales (capas externas dependen de internas)</li>
+<li>✓ Testeable e independiente de frameworks</li>
 </ul>
-<h3>8.2 Integración Híbrida</h3>
+<h3>7.2 Integración Híbrida</h3>
 <ul>
 <li>✓ Programación lógica (Prolog) para razonamiento biológico</li>
 <li>✓ Programación imperativa (Python) para cálculos numéricos</li>
 <li>✓ Comunicación bidireccional sin acoplamiento fuerte</li>
 <li>✓ Uso transparente de Prolog en simulaciones presa-depredador</li>
 </ul>
-<h3>8.3 Robustez</h3>
+<h3>7.3 Robustez</h3>
 <ul>
 <li>✓ Fallback a tasas estáticas si Prolog falla</li>
 <li>✓ Validación exhaustiva de entradas/salidas</li>
 <li>✓ Logs detallados para debugging</li>
 <li>✓ Manejo seguro de widgets en GUI</li>
 </ul>
-<h3>8.4 Extensibilidad</h3>
+<h3>7.4 Extensibilidad</h3>
 <ul>
 <li>✓ Nueva especie: agregar archivo <code>.json</code> + hechos Prolog</li>
 <li>✓ Nueva regla ambiental: modificar <code>environmental_effects.pl</code></li>
 <li>✓ Nuevo comportamiento de agente: extender <code>agent_behaviors.pl</code></li>
 <li>✓ Nuevos presets: extender <code>scenario_presets.py</code></li>
 </ul>
-<h3>8.5 Interfaz de Usuario</h3>
+<h3>7.5 Interfaz de Usuario</h3>
 <ul>
 <li>✓ GUI completa con Tkinter multiplataforma</li>
 <li>✓ Validación en tiempo real con indicadores visuales</li>
 <li>✓ Presets de escenarios para configuración rápida</li>
 <li>✓ Visualización integrada de resultados con Matplotlib</li>
 <li>✓ Exportación de datos (CSV) y gráficas (PNG)</li>
-<li>✓ Navegación intuitiva por pestañas para diferentes simulaciones<ul>
-<li>Egg→Larva: 0.620 (+194%)</li>
-<li>Larva L1→L2: 0.620 (+439%)</li>
-<li>Larva L2→L3: 0.697 (+47%)
-✓ Prolog successfully modifies rates</li>
+<li>✓ Navegación intuitiva por pestañas para diferentes simulaciones</li>
 </ul>
-</li>
-</ul>
-<p>CHECK 3: Population Impact</p>
-<ul>
-<li>Static simulation: 1,799 individuals</li>
-<li>Dynamic simulation: 256,814 individuals</li>
-<li>Difference: +255,015 (+14,175%)
-✓ Significant population impact</li>
-</ul>
-<p>CHECK 4: Prolog Query Validation</p>
-<ul>
-<li>Queries: 6 transitions</li>
-<li>Valid responses: 6</li>
-<li>Invalid/missing: 0
-✓ All queries successful</li>
-</ul>
-<h1>============================================================
-✓✓✓ ALL INTEGRATION TESTS PASSED ✓✓✓</h1>
-<pre><code class="hljs plaintext">
-### 7.2 Impacto de Factores Ambientales
-
-| Escenario | Temp (°C) | Humedad (%) | Agua | Tasa Efectiva | Poblacion Final |
-|-----------|-----------|-------------|------|---------------|-----------------|
-| Óptimo | 28 | 80 | 1.0 | 0.85 | 256,814 |
-| Estrés Térmico | 35 | 80 | 1.0 | 0.60 | 48,523 |
-| Estrés Hídrico | 28 | 30 | 0.2 | 0.34 | 3,456 |
-| Estrés Severo | 38 | 25 | 0.1 | 0.12 | 127 |
-
----
-
-## 8. Características Destacadas
-
-### 8.1 Arquitectura Limpia
-
-- ✓ Separación de responsabilidades (Presentación → Aplicación → Dominio → Infraestructura)
-- ✓ Dependencias unidireccionales (capas externas dependen de internas)
-- ✓ Testeable e independiente de frameworks
-
-### 8.2 Integración Híbrida
-
-- ✓ Programación lógica (Prolog) para razonamiento biológico
-- ✓ Programación imperativa (Python) para cálculos numéricos
-- ✓ Comunicación bidireccional sin acoplamiento fuerte
-
-### 8.3 Robustez
-
-- ✓ Fallback a tasas estáticas si Prolog falla
-- ✓ Validación exhaustiva de entradas/salidas
-- ✓ Logs detallados para debugging
-
-### 8.4 Extensibilidad
-
-- ✓ Nueva especie: agregar archivo `.json` + hechos Prolog
-- ✓ Nueva regla ambiental: modificar `environmental_effects.pl`
-- ✓ Nuevo comportamiento de agente: extender `agent_behaviors.pl`
-
----
-
-## 9. Casos de Uso Científicos
-
-### 9.1 Modelado de Escenarios Climáticos
-
-**Pregunta**: ¿Cómo afecta el cambio climático a poblaciones de *Aedes aegypti*?
-
-**Solución**: Ejecutar simulaciones con proyecciones de temperatura +2°C, +4°C.
-
-```python
-scenarios = {
-    "actual": SimulationConfig(temperature=28.0),
-    "clima_2050": SimulationConfig(temperature=30.0),
-    "clima_2100": SimulationConfig(temperature=32.0)
+<hr>
+<h2>8. Casos de Uso Científicos</h2>
+<h3>8.1 Modelado de Escenarios Climáticos</h3>
+<p><strong>Pregunta</strong>: ¿Cómo afecta el cambio climático a poblaciones de <em>Aedes aegypti</em>?</p>
+<p><strong>Solución</strong>: Ejecutar simulaciones con proyecciones de temperatura +2°C, +4°C.</p>
+<pre><code class="hljs python">scenarios = {
+    <span class="hljs-string">"actual"</span>: SimulationConfig(temperature=<span class="hljs-number">28.0</span>),
+    <span class="hljs-string">"clima_2050"</span>: SimulationConfig(temperature=<span class="hljs-number">30.0</span>),
+    <span class="hljs-string">"clima_2100"</span>: SimulationConfig(temperature=<span class="hljs-number">32.0</span>)
 }
-results = compare_scenarios(scenarios)</code></pre><h3>9.2 Evaluación de Control Biológico</h3>
+results = compare_scenarios(scenarios)</code></pre><h3>8.2 Evaluación de Control Biológico</h3>
 <p><strong>Pregunta</strong>: ¿Qué efectividad tiene introducir <em>Toxorhynchites</em> para controlar <em>Aedes aegypti</em>?</p>
 <p><strong>Solución</strong>: Usar la simulación presa-depredador con comparación automática.</p>
 <p><strong>Interfaz GUI</strong>: Pestaña "🦁 Presa-Depredador" → Seleccionar preset (ej. "Control Fuerte") → Ejecutar simulación → Ver gráfica de comparación con/sin depredadores.</p>
@@ -779,105 +730,88 @@ config = PredatorPreyConfig(
 
 <span class="hljs-comment"># Comparar con y sin depredadores</span>
 comparison = service.compare_predation_effect(config, use_prolog=<span class="hljs-literal">True</span>)
-<span class="hljs-built_in">print</span>(<span class="hljs-string">f"Reducción de población: <span class="hljs-subst">{comparison[<span class="hljs-string">'reduction_percentage'</span>]:<span class="hljs-number">.1</span>f}</span>%"</span>)</code></pre><h3>9.3 Análisis de Sensibilidad Ambiental</h3>
+<span class="hljs-built_in">print</span>(<span class="hljs-string">f"Reducción de población: <span class="hljs-subst">{comparison[<span class="hljs-string">'reduction_percentage'</span>]:<span class="hljs-number">.1</span>f}</span>%"</span>)</code></pre><h3>8.3 Análisis de Sensibilidad Ambiental</h3>
 <p><strong>Pregunta</strong>: ¿Cómo afecta la disponibilidad de agua a las dinámicas de depredación?</p>
 <p><strong>Solución</strong>: Ejecutar múltiples simulaciones variando el parámetro <code>water_availability</code>.</p>
 <p><strong>Interfaz GUI</strong>: Comparar presets "Tropical Seco" (agua: 0.4) vs. "Monzón" (agua: 1.0) y observar diferencias en reducción poblacional.</p>
-<h3>9.4 Optimización de Estrategias de Liberación</h3>
-<p><strong>Pregunta</strong>: ¿Cuál es el momento óptimo para liberar depredadores?</p>
-<p><strong>Solución</strong>: Usar preset "Introducción Tardía" (depredadores después de día 30) vs. "Balanceado" (desde día 0) y compara
-for predator_count in [10, 50, 100, 200]:
-    result = run_agent_simulation(
-        config=config,
-        num_predators=predator_count
-    )
-    print(f"Predadores: {predator_count} → Reducción: {result.reduction_percentage}%")</p>
-<pre><code class="hljs plaintext">
-### 9.3 Optimización de Estrategias de Fumigación
+<h2>9. Tecnologías Utilizadas</h2>
+<table>
+<thead>
+<tr>
+<th>Componente</th>
+<th>Tecnología</th>
+<th>Propósito</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Lógica de negocio</strong></td>
+<td>Python 3.10+</td>
+<td>Modelos, servicios, casos de uso</td>
+</tr>
+<tr>
+<td><strong>Razonamiento</strong></td>
+<td>SWI-Prolog 8.0+</td>
+<td>Inferencia biológica y decisiones</td>
+</tr>
+<tr>
+<td><strong>Integración</strong></td>
+<td>PySwip 0.2.10+</td>
+<td>Puente Python-Prolog</td>
+</tr>
+<tr>
+<td><strong>Cálculo numérico</strong></td>
+<td>NumPy 1.21+</td>
+<td>Álgebra matricial (Leslie)</td>
+</tr>
+<tr>
+<td><strong>Visualización</strong></td>
+<td>Matplotlib 3.5+</td>
+<td>Gráficos de evolución temporal</td>
+</tr>
+</tbody></table>
+<h2>10. Análisis de utilidad y completitud</h2>
+<h3>10.1 Aplicaciones Potenciales</h3>
+<ul>
+<li>Modelado de escenarios de cambio climático con presets ambientales</li>
+<li>Evaluación de estrategias de control vectorial mediante simulaciones comparativas</li>
+<li>Optimización de liberaciones de depredadores biológicos variando poblaciones iniciales</li>
+<li>Predicción de brotes epidemiológicos con diferentes condiciones ambientales</li>
+<li>Educación en modelado ecológico computacional con interfaz visual intuitiva</li>
+<li>Análisis de sensibilidad ambiental para estudios de vectores</li>
+</ul>
+<h3>10.2 Trabajo Futuro</h3>
+<ul>
+<li><strong>GUI para agentes</strong>: Interfaz para configurar y visualizar simulaciones multiagente individualizadas</li>
+<li><strong>Simulación híbrida</strong>: Comparación visual entre modelos poblacionales y basados en agentes</li>
+<li><strong>Validación empírica</strong>: Comparar predicciones con datos de campo de liberaciones de <em>Toxorhynchites</em></li>
+<li><strong>Optimización</strong>: Paralelización de consultas Prolog para simulaciones de largo plazo</li>
+<li><strong>Análisis estadístico avanzado</strong>: Herramientas de análisis de sensibilidad y optimización integradas en GUI</li>
+<li><strong>Exportación mejorada</strong>: Reportes automatizados en PDF con gráficas y estadísticagregar especies, reglas y comportamientos sin modificar código existente.</li>
+</ul>
+<hr>
+<h2>11. Referencias</h2>
+<p><strong>Documentación del Proyecto</strong>:</p>
+<ul>
+<li><code>README.md</code> - Documentación general del sistema</li>
+<li><code>src/prolog/PROLOG_DOCUMENTATION.md</code> - Detalles de base de conocimiento</li>
+<li><code>src/domain/README.md</code> - Modelos matemáticos</li>
+<li><code>src/application/README.md</code> - Servicios y casos de uso</li>
+</ul>
+<p><strong>Tecnologías</strong>:</p>
+<ul>
+<li>SWI-Prolog: <a href="https://www.swi-prolog.org/">https://www.swi-prolog.org/</a></li>
+<li>PySwip: <a href="https://github.com/yuce/pyswip">https://github.com/yuce/pyswip</a></li>
+<li>NumPy: <a href="https://numpy.org/">https://numpy.org/</a></li>
+</ul>
+<p><strong>Literatura Científica</strong>:</p>
+<ul>
+<li>Matrices de Leslie para poblaciones estructuradas</li>
+<li>Control biológico con <em>Toxorhynchites</em></li>
+<li>Modelado basado en agentes para ecología</li>
+</ul>
+<hr>
+<p><strong>Fecha de Presentación</strong>: Enero 2026<br><strong>Estado del Proyecto</strong>: Backend operativo, Frontend completo, Integración Prolog validada<br><strong>Licencia</strong>: MIT License</p>
 
-**Pregunta**: ¿Cuál es el momento óptimo para aplicar larvicida?
-
-**Solución**: Simular intervenciones en diferentes días, medir efectividad.
-
----
-
-## 10. Tecnologías Utilizadas
-
-| Componente | Tecnología | Propósito |
-|------------|-----------|-----------|
-| **Lógica de negocio** | Python 3.10+ | Modelos, servicios, casos de uso |
-| **Razonamiento** | SWI-Prolog 8.0+ | Inferencia biológica y decisiones |
-| **Integración** | PySwip 0.2.10+ | Puente Python-Prolog |
-| **Cálculo numérico** | NumPy 1.21+ | Álgebra matricial (Leslie) |
-| **Visualización** | Matplotlib 3.5+ | Gráficos de evolución temporal |
-6. **Simulación presa-depredador operativa**: Interfaz gráfica completa para modelar interacciones *Toxorhynchites*-*Aedes aegypti* con comparación automática de escenarios.
-
-7. **Interfaz de usuario completa**: GUI intuitiva con validación en tiempo real, presets de escenarios, visualización integrada y exportación de datos.
-
-### Aplicaciones Potenciales
-
-- Modelado de escenarios de cambio climático con presets ambientales
-- Evaluación de estrategias de control vectorial mediante simulaciones comparativas
-- Optimización de liberaciones de depredadores biológicos variando poblaciones iniciales
-- Predicción de brotes epidemiológicos con diferentes condiciones ambientales
-- Educación en modelado ecológico computacional con interfaz visual intuitiva
-- Análisis de sensibilidad ambiental para estudios de vectores
-
-### Trabajo Futuro
-
-- **GUI para agentes**: Interfaz para configurar y visualizar simulaciones multiagente individualizadas
-- **Simulación híbrida**: Comparación visual entre modelos poblacionales y basados en agentes
-- **Validación empírica**: Comparar predicciones con datos de campo de liberaciones de *Toxorhynchites*
-- **Optimización**: Paralelización de consultas Prolog para simulaciones de largo plazo
-- **Análisis estadístico avanzado**: Herramientas de análisis de sensibilidad y optimización integradas en GUI
-- **Exportación mejorada**: Reportes automatizados en PDF con gráficas y estadísticagregar especies, reglas y comportamientos sin modificar código existente.
-
-3. **Validación cuantitativa**: Tests muestran diferencias de hasta **+14,000%** en población entre modelos estáticos y dinámicos.
-
-4. **Razonamiento de agentes**: Base de conocimiento Prolog codifica comportamientos biológicos complejos (búsqueda de alimento, reproducción, depredación).
-
-5. **Robustez operativa**: Sistema funciona con o sin Prolog, garantizando disponibilidad.
-
-### Aplicaciones Potenciales
-
-- Modelado de escenarios de cambio climático
-- Evaluación de estrategias de control vectorial
-- Optimización de liberaciones de depredadores biológicos
-- Predicción de brotes epidemiológicos
-- Educación en modelado ecológico computacional
-
-### Trabajo Futuro
-
-- **Activación de depredación**: completo, Frontend operativo, Simulación presa-depredador funcional`population_dynamics.pl`
-- **GUI para agentes**: Interfaz para configurar y visualizar simulaciones multiagente
-- **Validación empírica**: Comparar predicciones con datos de campo
-- **Optimización**: Paralelización de consultas Prolog para simulaciones grandes
-
----
-
-## 12. Referencias
-
-**Documentación del Proyecto**:
-- `README.md` - Documentación general del sistema
-- `src/prolog/PROLOG_DOCUMENTATION.md` - Detalles de base de conocimiento
-- `src/domain/README.md` - Modelos matemáticos
-- `src/application/README.md` - Servicios y casos de uso
-
-**Tecnologías**:
-- SWI-Prolog: https://www.swi-prolog.org/
-- PySwip: https://github.com/yuce/pyswip
-- NumPy: https://numpy.org/
-
-**Literatura Científica**:
-- Matrices de Leslie para poblaciones estructuradas
-- Control biológico con *Toxorhynchites*
-- Modelado basado en agentes para ecología
-
----
-
-**Fecha de Presentación**: Enero 2026  
-**Estado del Proyecto**: Backend operativo, Frontend completo, Integración Prolog validada  
-**Licencia**: MIT License</code></pre>
                 </article>
                 </body>
                 </html>

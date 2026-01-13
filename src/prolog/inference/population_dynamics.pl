@@ -343,7 +343,7 @@ ecological_equilibrium(Day) :-
     % Verificar que el ratio depredador-presa esté en rango válido
     predator_prey_ratio(Day, Ratio),
     Ratio > 0.01,   % Al menos 1% de depredadores respecto a presas
-    Ratio < 0.5.    % No más de 50% (evita sobredepredación)
+    Ratio < 0.5.    % No mas de 50% (evita sobredepredación)
 
 %% ────────────────────────────────────────────────────────────────────────────
 %% CASO 2: Simulación de UNA sola especie (sin interacción)
@@ -417,7 +417,7 @@ extinction_risk(Species, Day, Risk) :-
 
 %% minimum_viable_population/2: Define MVP (Minimum Viable Population) por género.
 %% @param Genero: Identificador del género
-%% @param MVP: Población mínima para viabilidad genética y demográfica a largo plazo
+%% @param MVP: Población minima para viabilidad genética y demográfica a largo plazo
 %% Valores conservadores basados en estrategia reproductiva: Aedes 50 (r-estratega con alta fecundidad),
 %% Toxorhynchites 20 (K-estratega con baja fecundidad).
 minimum_viable_population(aedes_aegypti, 50).

@@ -291,10 +291,6 @@ effective_survival(Species, Stage, _, _, _, 0.5) :-
     species(Species),
     \+ base_survival(Species, Stage, _).
 
-% ============================================================
-% DEPREDACIÓN (Preparada, actualmente inactiva)
-% ============================================================
-
 % Vulnerabilidad de presas por estadio
 prey_vulnerability(larva_l1, 1.0).  % L1: muy vulnerable
 prey_vulnerability(larva_l2, 0.8).  % L2: vulnerable
@@ -507,14 +503,6 @@ for day in range(90):
 plot_population_evolution(results)
 ```
 
-**Comparación: Con y sin Prolog**
-
-| Métrica | Sin Prolog (Estático) | Con Prolog (Dinámico) | Diferencia |
-|---------|----------------------|---------------------|-----------|
-| Tasa supervivencia (día 1) | 0.211 | 0.620 | +194% |
-| Población final (día 90) | 1,799 | 256,814 | +14,175% |
-| Realismo biológico | Bajo | Alto | - |
-
 ### 5.2 Simulación Presa-Depredador (Modelo Poblacional, Operativa)
 
 **Flujo de ejecución**:
@@ -676,60 +664,8 @@ except Exception as e:
 
 ---
 
-- ✓ Interfaz gráfica completa con patrón MVC
 
-### 8.2 Integración Híbrida
-
-- ✓ Programación lógica (Prolog) para razonamiento biológico
-- ✓ Programación imperativa (Python) para cálculos numéricos
-- ✓ Comunicación bidireccional sin acoplamiento fuerte
-- ✓ Uso transparente de Prolog en simulaciones presa-depredador
-
-### 8.3 Robustez
-
-- ✓ Fallback a tasas estáticas si Prolog falla
-- ✓ Validación exhaustiva de entradas/salidas
-- ✓ Logs detallados para debugging
-- ✓ Manejo seguro de widgets en GUI
-
-### 8.4 Extensibilidad
-
-- ✓ Nueva especie: agregar archivo `.json` + hechos Prolog
-- ✓ Nueva regla ambiental: modificar `environmental_effects.pl`
-- ✓ Nuevo comportamiento de agente: extender `agent_behaviors.pl`
-- ✓ Nuevos presets: extender `scenario_presets.py`
-
-### 8.5 Interfaz de Usuario
-
-- ✓ GUI completa con Tkinter multiplataforma
-- ✓ Validación en tiempo real con indicadores visuales
-- ✓ Presets de escenarios para configuración rápida
-- ✓ Visualización integrada de resultados con Matplotlib
-- ✓ Exportación de datos (CSV) y gráficas (PNG)
-- ✓ Navegación intuitiva por pestañas para diferentes simulaciones
-  - Egg→Larva: 0.620 (+194%)
-  - Larva L1→L2: 0.620 (+439%)
-  - Larva L2→L3: 0.697 (+47%)
-✓ Prolog successfully modifies rates
-
-CHECK 3: Population Impact
-  - Static simulation: 1,799 individuals
-  - Dynamic simulation: 256,814 individuals
-  - Difference: +255,015 (+14,175%)
-✓ Significant population impact
-
-CHECK 4: Prolog Query Validation
-  - Queries: 6 transitions
-  - Valid responses: 6
-  - Invalid/missing: 0
-✓ All queries successful
-
-============================================================
-✓✓✓ ALL INTEGRATION TESTS PASSED ✓✓✓
-============================================================
-```
-
-### 7.2 Impacto de Factores Ambientales
+### 6.2 Impacto de Factores Ambientales
 
 | Escenario | Temp (°C) | Humedad (%) | Agua | Tasa Efectiva | Poblacion Final |
 |-----------|-----------|-------------|------|---------------|-----------------|
@@ -740,37 +676,49 @@ CHECK 4: Prolog Query Validation
 
 ---
 
-## 8. Características Destacadas
+## 7. Características Destacadas
 
-### 8.1 Arquitectura Limpia
+### 7.1 Arquitectura Limpia
 
 - ✓ Separación de responsabilidades (Presentación → Aplicación → Dominio → Infraestructura)
 - ✓ Dependencias unidireccionales (capas externas dependen de internas)
 - ✓ Testeable e independiente de frameworks
 
-### 8.2 Integración Híbrida
+### 7.2 Integración Híbrida
 
 - ✓ Programación lógica (Prolog) para razonamiento biológico
 - ✓ Programación imperativa (Python) para cálculos numéricos
 - ✓ Comunicación bidireccional sin acoplamiento fuerte
+- ✓ Uso transparente de Prolog en simulaciones presa-depredador
 
-### 8.3 Robustez
+### 7.3 Robustez
 
 - ✓ Fallback a tasas estáticas si Prolog falla
 - ✓ Validación exhaustiva de entradas/salidas
 - ✓ Logs detallados para debugging
+- ✓ Manejo seguro de widgets en GUI
 
-### 8.4 Extensibilidad
+### 7.4 Extensibilidad
 
 - ✓ Nueva especie: agregar archivo `.json` + hechos Prolog
 - ✓ Nueva regla ambiental: modificar `environmental_effects.pl`
 - ✓ Nuevo comportamiento de agente: extender `agent_behaviors.pl`
+- ✓ Nuevos presets: extender `scenario_presets.py`
+
+### 7.5 Interfaz de Usuario
+
+- ✓ GUI completa con Tkinter multiplataforma
+- ✓ Validación en tiempo real con indicadores visuales
+- ✓ Presets de escenarios para configuración rápida
+- ✓ Visualización integrada de resultados con Matplotlib
+- ✓ Exportación de datos (CSV) y gráficas (PNG)
+- ✓ Navegación intuitiva por pestañas para diferentes simulaciones
 
 ---
 
-## 9. Casos de Uso Científicos
+## 8. Casos de Uso Científicos
 
-### 9.1 Modelado de Escenarios Climáticos
+### 8.1 Modelado de Escenarios Climáticos
 
 **Pregunta**: ¿Cómo afecta el cambio climático a poblaciones de *Aedes aegypti*?
 
@@ -785,7 +733,7 @@ scenarios = {
 results = compare_scenarios(scenarios)
 ```
 
-### 9.2 Evaluación de Control Biológico
+### 8.2 Evaluación de Control Biológico
 
 **Pregunta**: ¿Qué efectividad tiene introducir *Toxorhynchites* para controlar *Aedes aegypti*?
 
@@ -811,7 +759,7 @@ comparison = service.compare_predation_effect(config, use_prolog=True)
 print(f"Reducción de población: {comparison['reduction_percentage']:.1f}%")
 ```
 
-### 9.3 Análisis de Sensibilidad Ambiental
+### 8.3 Análisis de Sensibilidad Ambiental
 
 **Pregunta**: ¿Cómo afecta la disponibilidad de agua a las dinámicas de depredación?
 
@@ -819,28 +767,8 @@ print(f"Reducción de población: {comparison['reduction_percentage']:.1f}%")
 
 **Interfaz GUI**: Comparar presets "Tropical Seco" (agua: 0.4) vs. "Monzón" (agua: 1.0) y observar diferencias en reducción poblacional.
 
-### 9.4 Optimización de Estrategias de Liberación
 
-**Pregunta**: ¿Cuál es el momento óptimo para liberar depredadores?
-
-**Solución**: Usar preset "Introducción Tardía" (depredadores después de día 30) vs. "Balanceado" (desde día 0) y compara
-for predator_count in [10, 50, 100, 200]:
-    result = run_agent_simulation(
-        config=config,
-        num_predators=predator_count
-    )
-    print(f"Predadores: {predator_count} → Reducción: {result.reduction_percentage}%")
-```
-
-### 9.3 Optimización de Estrategias de Fumigación
-
-**Pregunta**: ¿Cuál es el momento óptimo para aplicar larvicida?
-
-**Solución**: Simular intervenciones en diferentes días, medir efectividad.
-
----
-
-## 10. Tecnologías Utilizadas
+## 9. Tecnologías Utilizadas
 
 | Componente | Tecnología | Propósito |
 |------------|-----------|-----------|
@@ -849,11 +777,9 @@ for predator_count in [10, 50, 100, 200]:
 | **Integración** | PySwip 0.2.10+ | Puente Python-Prolog |
 | **Cálculo numérico** | NumPy 1.21+ | Álgebra matricial (Leslie) |
 | **Visualización** | Matplotlib 3.5+ | Gráficos de evolución temporal |
-6. **Simulación presa-depredador operativa**: Interfaz gráfica completa para modelar interacciones *Toxorhynchites*-*Aedes aegypti* con comparación automática de escenarios.
 
-7. **Interfaz de usuario completa**: GUI intuitiva con validación en tiempo real, presets de escenarios, visualización integrada y exportación de datos.
-
-### Aplicaciones Potenciales
+## 10. Análisis de utilidad y completitud
+### 10.1 Aplicaciones Potenciales
 
 - Modelado de escenarios de cambio climático con presets ambientales
 - Evaluación de estrategias de control vectorial mediante simulaciones comparativas
@@ -862,7 +788,7 @@ for predator_count in [10, 50, 100, 200]:
 - Educación en modelado ecológico computacional con interfaz visual intuitiva
 - Análisis de sensibilidad ambiental para estudios de vectores
 
-### Trabajo Futuro
+### 10.2 Trabajo Futuro
 
 - **GUI para agentes**: Interfaz para configurar y visualizar simulaciones multiagente individualizadas
 - **Simulación híbrida**: Comparación visual entre modelos poblacionales y basados en agentes
@@ -871,30 +797,9 @@ for predator_count in [10, 50, 100, 200]:
 - **Análisis estadístico avanzado**: Herramientas de análisis de sensibilidad y optimización integradas en GUI
 - **Exportación mejorada**: Reportes automatizados en PDF con gráficas y estadísticagregar especies, reglas y comportamientos sin modificar código existente.
 
-3. **Validación cuantitativa**: Tests muestran diferencias de hasta **+14,000%** en población entre modelos estáticos y dinámicos.
-
-4. **Razonamiento de agentes**: Base de conocimiento Prolog codifica comportamientos biológicos complejos (búsqueda de alimento, reproducción, depredación).
-
-5. **Robustez operativa**: Sistema funciona con o sin Prolog, garantizando disponibilidad.
-
-### Aplicaciones Potenciales
-
-- Modelado de escenarios de cambio climático
-- Evaluación de estrategias de control vectorial
-- Optimización de liberaciones de depredadores biológicos
-- Predicción de brotes epidemiológicos
-- Educación en modelado ecológico computacional
-
-### Trabajo Futuro
-
-- **Activación de depredación**: completo, Frontend operativo, Simulación presa-depredador funcional`population_dynamics.pl`
-- **GUI para agentes**: Interfaz para configurar y visualizar simulaciones multiagente
-- **Validación empírica**: Comparar predicciones con datos de campo
-- **Optimización**: Paralelización de consultas Prolog para simulaciones grandes
-
 ---
 
-## 12. Referencias
+## 11. Referencias
 
 **Documentación del Proyecto**:
 - `README.md` - Documentación general del sistema

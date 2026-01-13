@@ -17,8 +17,8 @@
 %% stage_duration/4: Duración de cada estadio de desarrollo.
 %% @param Especie: Nombre de la especie
 %% @param Estadio: Estadio del ciclo de vida
-%% @param MinDias: Duración mínima en días
-%% @param MaxDias: Duración máxima en días
+%% @param MinDias: Duración minima en días
+%% @param MaxDias: Duración mixima en días
 :- dynamic stage_duration/4.
 
 %% survival_rate/4: Tasa de supervivencia entre estadios.
@@ -69,8 +69,8 @@ clear_all_parameters :-
 %% load_stage_duration/4: Carga duración de un estadio.
 %% @param Especie: Identificador de especie
 %% @param Estadio: Estadio del ciclo de vida
-%% @param Min: Duración mínima en días
-%% @param Max: Duración máxima en días
+%% @param Min: Duración minima en días
+%% @param Max: Duración maxima en días
 load_stage_duration(Species, Stage, Min, Max) :-
     assertz(stage_duration(Species, Stage, Min, Max)).
 
@@ -116,7 +116,7 @@ load_environmental_param(Name, Value) :-
 
 %% parameters_loaded/1: Verifica que parámetros esenciales estén cargados.
 %% @param Especie: Especie a verificar
-%% Retorna true si los parámetros mínimos necesarios están presentes.
+%% Retorna true si los parámetros minimos necesarios están presentes.
 parameters_loaded(Species) :-
     stage_duration(Species, egg, _, _),
     stage_duration(Species, larva_l1, _, _),
